@@ -36,8 +36,8 @@ Welcome to **IncepRes**, a powerful tool designed to provide intelligent insight
 Ensure you have Python installed. Clone this repository and install the required dependencies:
 
 ```bash
-git clone https://github.com/Mainak-Das/IncepRes.git
-cd IncepRes
+git clone https://github.com/Mainak-Das/IncepRes-2025.git
+cd IncepRes-2025
 pip install -r requirements.txt
 ```
 
