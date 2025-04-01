@@ -22,10 +22,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="auto",
     menu_items={
-        "Get help": "https://github.com/mainak-das/IncepRes",
+        "Get help": "https://github.com/IncepRes/IncepRes-2025",
         "About": """
             ## Upload a report to classify cancer with precision
-            **GitHub**: https://github.com/mainak-das/IncepRes
+            **GitHub**: https://github.com/IncepRes/IncepRes-2025.git
         """
     }
 )
@@ -204,18 +204,86 @@ st.markdown(
         position: relative;
     }
 
-    span.st-emotion-cache-9ycgxx.e1blfcsg3::after {
-        width: 1000px;
+    # span.st-emotion-cache-9ycgxx.e1blfcsg3::after {
+    #     width: 1000px;
+    #     content: "Drag & Drop Cancer Report Here";
+    #     visibility: visible;
+    #     position: absolute;
+    #     left: 0;
+    #     top: 0;
+    #     color: #20b8cd;
+    #     font-size: 23px;
+    #     font-weight: 360;
+    #     font-family: "Poppins", sans-serif;
+    # }
+
+    div.css-8u98yl.exg6vvm0 > section.css-1iwfxcu.exg6vvm15 {
+        border: 4px dashed #20b8cd;
+        border-radius: 20px;
+        padding: 20px;
+        height: 130px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #0e1117; /* Dark background */
+        transition: all 0.3s ease-in-out; /* Smooth hover effect */
+        color: white; /* Ensuring text is visible */
+    }
+
+    /* Optional: Change border color when hovering */
+    div.css-8u98yl.exg6vvm0 > section.css-1iwfxcu.exg6vvm15:hover {
+        border-color: #1de2ff; /* Slightly brighter cyan */
+        background-color: #121826; /* Slightly lighter dark shade */
+    }
+
+    /* Improve text styling inside the uploader */
+    div.css-8u98yl.exg6vvm0 > section.css-1iwfxcu.exg6vvm15 p {
+        font-size: 16px;
+        font-weight: bold;
+        color: #ffffff; /* White text for contrast */
+    }
+
+    span.css-9ycgxx.exg6vvm12,
+    .css-1fttcpj.exg6vvm11 > span.css-9ycgxx.exg6vvm12,
+    .css-1fttcpj.exg6vvm11 > span:nth-child(1),
+    .css-1fttcpj > span.css-9ycgxx,
+    .exg6vvm12 {
+        visibility: hidden;
+        position: relative;
+    }
+
+    span.css-9ycgxx.exg6vvm12::after,
+    .css-1fttcpj.exg6vvm11 > span.css-9ycgxx.exg6vvm12::after,
+    .css-1fttcpj.exg6vvm11 > span:nth-child(1)::after,
+    .css-1fttcpj > span.css-9ycgxx::after,
+    .exg6vvm12::after {
         content: "Drag & Drop Cancer Report Here";
-        visibility: visible;
-        position: absolute;
-        left: 0;
-        top: 0;
         color: #20b8cd;
         font-size: 23px;
         font-weight: 360;
         font-family: "Poppins", sans-serif;
+        visibility: visible;
+        position: absolute;
+        left: 0;
+        top: -7px;
+        width: 120%; /* Increase the width of the container */
+        text-align: center;
+        white-space: nowrap; /* Prevents text from wrapping */
     }
+
+    .css-1fttcpj.exg6vvm11 > small.css-7oyrr6.euu6i2w0 {
+        margin-top: -10px; /* Adds space above the element */
+        /* Or you can use transform for a smoother effect */
+        transform: translateY(10px); /* Moves the text down smoothly */
+    }
+
+    button.css-1ak6eu7.edgvbvh10 {
+        font-family: "Poppins", sans-serif;
+        font-size: 18px;
+        font-weight: 450;
+        color: #20b8cd;
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -230,7 +298,6 @@ hide_file_name_and_remove_button = """
             align-items: center; 
         }
         
-        /* Style for the remove button (X) */
         div.stFileUploaderFile.st-emotion-cache-12xsiil.e1blfcsg10 button {
             margin-left: 10px;
         }
@@ -253,6 +320,24 @@ hide_file_name_and_remove_button = """
             animation: fadeInOut 4s ease-in-out forwards;
         }
 
+        .warning_toast {
+            position: fixed;
+            top: 9%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-image: linear-gradient(135deg, rgba(255, 187, 51, 1), rgba(255, 140, 0, 1)); /* Light yellowish-orange */
+            color: #0e1117;
+            padding: 12px 10px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            font-family: "Poppins", sans-serif;
+            text-align: center;
+            z-index: 1000;
+            opacity: 1;  /* Full opacity */
+            animation: fadeInOut 4s ease-in-out forwards;
+        }
+
         @keyframes fadeInOut {
             0% { opacity: 0; }
             10% { opacity: 1; }
@@ -262,19 +347,14 @@ hide_file_name_and_remove_button = """
     </style>
 """
 st.markdown(hide_file_name_and_remove_button, unsafe_allow_html=True)
-
 image = None
-
 
 # Function to display custom toast message
 def show_success_toast(message):
     st.markdown(f'<div class="success_toast">{message}</div>', unsafe_allow_html=True)
 
-# Initialize session state for uploaded file name if it doesn't exist
-# if 'uploaded_file' not in st.session_state:
-#     st.session_state['uploaded_file'] = None
-
-# uploaded_file=None
+def show_warning_toast(message):
+    st.markdown(f'<div class="warning_toast">{message}</div>', unsafe_allow_html=True)
 
 # File uploader widget
 input_file = st.file_uploader("", type=["png", "jpg", "jpeg", "pdf"])
@@ -296,12 +376,7 @@ if input_file is not None:
     else:
         st.error("Unsupported file format!")
 
-# if input_file is None and st.session_state['uploaded_file'] is not None:
-# if input_file is None:
-#     st.session_state['uploaded_file'] = None
-
 # ----------------------------- SELECT BOX & SUBMIT BUTTON -------------------------------- #
-
 
 # Swastik's Code
 class_names = ['all_benign', 'all_early', 'all_pre', 'all_pro', 'brain_glioma', 'brain_menin', 'brain_tumor', 'breast_benign', 'breast_malignant', 'cervix_dyk', 'cervix_koc', 'cervix_mep', 'cervix_pab', 'cervix_sfi', 'colon_aca', 'colon_bnt', 'kidney_normal', 'kidney_tumor', 'lung_aca', 'lung_bnt', 'lung_scc', 'lymph_cll', 'lymph_fl', 'lymph_mcl', 'oral_normal', 'oral_scc']
@@ -382,7 +457,6 @@ def show_imgwithheat(img, heatmap, alpha=0.4, return_array=False):
     Return:
         None or image array.
     """
-    # img = cv2.imread(img_path)
     heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
     heatmap = (heatmap*255).astype("uint8")
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
@@ -473,14 +547,6 @@ def lime_explainer(image_array, model):
 
     return temp_resized, mask_resized
 
-
-
-
-
-
-
-
-
 def classify_operations(image, model):
     image_res = image.resize((72,72))
     # Convert to NumPy array
@@ -523,14 +589,104 @@ def lime_operations(image):
     # super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
     
     return grad_image_array, pred_class, pred_val, mask, pred_val_prob
-    
-# End of Swastik's Code
-print(image)
-    
-col1, col2 = st.columns([5, 1])
 
+# Functions for Full Screen Spinner
+def show_full_screen_spinner():
+    st.markdown(
+        """
+        <style>
+        .full-screen-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #0e1117;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+        }
+
+        .loader {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 6rem;
+            margin-top: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .loader:before,
+        .loader:after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            animation: pulsOut 1.8s ease-in-out infinite;
+            filter: drop-shadow(0 0 1rem rgba(32, 184, 205, 0.75)); /* Updated shadow color */
+        }
+
+        .loader:before {
+            width: 100%;
+            padding-bottom: 100%;
+            box-shadow: inset 0 0 0 1rem #20b8cd; /* Updated color */
+            animation-name: pulsIn;
+        }
+
+        .loader:after {
+            width: calc(100% - 2rem);
+            padding-bottom: calc(100% - 2rem);
+            box-shadow: 0 0 0 0 #20b8cd; /* Updated color */
+        }
+
+        @keyframes pulsIn {
+            0% {
+                box-shadow: inset 0 0 0 1rem #20b8cd; /* Updated color */
+                opacity: 1;
+            }
+            50%, 100% {
+                box-shadow: inset 0 0 0 0 #20b8cd; /* Updated color */
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulsOut {
+            0%, 50% {
+                box-shadow: 0 0 0 0 #20b8cd; /* Updated color */
+                opacity: 0;
+            }
+            100% {
+                box-shadow: 0 0 0 1rem #20b8cd; /* Updated color */
+                opacity: 1;
+            }
+        }
+        </style>
+
+        <div class="full-screen-loader">
+            <div class="loader"></div>
+        </div>
+
+        """, unsafe_allow_html=True
+    )
+
+# Function to hide the full-screen spinner (overlay)
+def hide_full_screen_spinner():
+    st.markdown(
+        """
+        <style>
+        .full-screen-loader {
+            display: none;
+        }
+        </style>
+        """, unsafe_allow_html=True
+    )
+
+# ----------------------------------- New Classify Button with a Spinner Added on 02/04/2025 -----------------------------------
+col1, col2 = st.columns([5, 1])
 with col1:
-    options = ["Select Output Type..."] + ["Grad-CAM", "Grad-CAM++", "LIME"]
+    options = ["Select Output Type..."] + ["Grad-CAM", "Grad-CAM++"]
     output_type = st.selectbox(
         label="",
         options=options,
@@ -540,105 +696,194 @@ with col1:
 
 with col2:
     classify_button = st.button("Classify ➤", key="submit_btn")
+
 if classify_button:
+    # Check for missing inputs or parameters
     if output_type == "Select Output Type..." and ('input_file' not in locals() or input_file is None):
-        st.warning("⚠  Please upload an image and select an output parameter!")
+        show_warning_toast(f"Please upload a report and select an output parameter!")
     elif output_type == "Select Output Type...":
-        st.warning("⚠  Please select an output parameter!")
+        show_warning_toast(f"Please select an output parameter!")
     elif 'input_file' not in locals() or input_file is None:
-        st.warning("⚠  Please upload an image!")
+        show_warning_toast(f"Please upload a report!")
     else:
-        with st.spinner('Analysing... Please wait'):
+        # This block runs when the input and output are valid
+        
+        # Show the full-screen spinner while performing the analysis operations
+        show_full_screen_spinner()
+
+        with st.spinner():
+            # Perform Grad-CAM or Grad-CAM++ based on output_type
+            if output_type == "Grad-CAM":
+                # Perform Grad-CAM analysis
+                pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
+                
+                # Process the heatmap and apply colormap
+                if heatmap.max() > 1:
+                    heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
+                colormap = plt.cm.plasma(heatmap)
+                colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
+                
+                # Display results
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    st.subheader("Input Image")
+                with col2:
+                    st.subheader("Report Analysis")
+                col1.image(input_file, use_column_width=True)
+                col2.image(super, use_column_width=True)
+
+                col3, col4 = st.columns([1, 1])
+                with col3:
+                    st.subheader("Grad-CAM Image")
+                with col4:
+                    st.subheader("Heatmap")
+                col3.image(super, use_column_width=True)
+                col4.image(colormap, use_column_width=True)
+
+            elif output_type == "Grad-CAM++":
+                # Perform Grad-CAM++ analysis
+                pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
+                
+                # Process the heatmap and apply colormap
+                if heatmap.max() > 1:
+                    heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
+                colormap = plt.cm.plasma(heatmap)
+                colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
+
+                # Display results
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    st.subheader("Input Image")
+                with col2:
+                    st.subheader("Report Analysis")
+                col1.image(input_file, use_column_width=True)
+                col2.image(super, use_column_width=True)
+
+                col3, col4 = st.columns([1, 1])
+                with col3:
+                    st.subheader("Grad-CAM++ Image")
+                with col4:
+                    st.subheader("Heatmap")
+                col3.image(super, use_column_width=True)
+                col4.image(colormap, use_column_width=True)
+            
+            # Simulate processing time for demonstration
             time.sleep(3)
+        # Hide the full-screen spinner once the processing is done
+        hide_full_screen_spinner()
+# ----------------------------------- End of Classify Button with a Spinner Added on 02/04/2025 -----------------------------------
+
+
+# --- Old Classify Button (If any problem arise after clicking Classify button, then uncomment this code and comment out the above new code) ---
+# col1, col2 = st.columns([5, 1])
+
+# with col1:
+#     options = ["Select Output Type..."] + ["Grad-CAM", "Grad-CAM++", "LIME"]
+#     output_type = st.selectbox(
+#         label="",
+#         options=options,
+#         index=0,
+#         key="output_type"
+#     )
+
+# with col2:
+#     classify_button = st.button("Classify ➤", key="submit_btn")
+# if classify_button:
+#     if output_type == "Select Output Type..." and ('input_file' not in locals() or input_file is None):
+#         st.warning("⚠  Please upload an image and select an output parameter!")
+#     elif output_type == "Select Output Type...":
+#         st.warning("⚠  Please select an output parameter!")
+#     elif 'input_file' not in locals() or input_file is None:
+#         st.warning("⚠  Please upload an image!")
+#     else:
+#         with st.spinner('Analysing... Please wait'):
+#             time.sleep(3)
         
-        # Swastik's Code
-        if output_type == "Grad-CAM":
-            pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
-            st.write(pred_val, pred_class, pred_val_prob)
+#         if output_type == "Grad-CAM":
+#             pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
+#             st.write(pred_val, pred_class, pred_val_prob)
             
-            if heatmap.max() > 1:  
-                heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
+#             if heatmap.max() > 1:  
+#                 heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
 
-            # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
-            colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
-            colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
+#             # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
+#             colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
+#             colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
             
             
-            col1, col2 = st.columns([1, 1]) 
-            with col1:
-                st.subheader("Input Image")
-            with col2:
-                st.subheader("Report Analysis") 
-            # col1.image(input_file, use_container_width=True)
-            # col2.image(input_file, use_container_width=True)
-            col1.image(input_file, use_column_width=True)
-            col2.image(super, use_column_width=True)
+#             col1, col2 = st.columns([1, 1]) 
+#             with col1:
+#                 st.subheader("Input Image")
+#             with col2:
+#                 st.subheader("Report Analysis") 
+#             # col1.image(input_file, use_container_width=True)
+#             # col2.image(input_file, use_container_width=True)
+#             col1.image(input_file, use_column_width=True)
+#             col2.image(super, use_column_width=True)
             
-            col3, col4 = st.columns([1, 1]) 
-            with col3:
-                st.subheader("Grad-CAM Image")  # Change this title as needed
-            with col4:
-                st.subheader("Heatmap")  # Change this title as needed
+#             col3, col4 = st.columns([1, 1]) 
+#             with col3:
+#                 st.subheader("Grad-CAM Image")  # Change this title as needed
+#             with col4:
+#                 st.subheader("Heatmap")  # Change this title as needed
 
-            col3.image(super, use_column_width=True)  # Replace with actual image variable
-            col4.image(colormap, use_column_width=True)
-        elif output_type == "Grad-CAM++":
-            pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
-            st.write(pred_val, pred_class, pred_val_prob)
+#             col3.image(super, use_column_width=True)  # Replace with actual image variable
+#             col4.image(colormap, use_column_width=True)
+#         elif output_type == "Grad-CAM++":
+#             pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
+#             st.write(pred_val, pred_class, pred_val_prob)
             
-            if heatmap.max() > 1:  
-                heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
+#             if heatmap.max() > 1:  
+#                 heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
 
-            # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
-            colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
-            colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
+#             # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
+#             colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
+#             colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
             
-            col1, col2 = st.columns([1, 1]) 
-            with col1:
-                st.subheader("Input Image")
-            with col2:
-                st.subheader("Report Analysis") 
-            # col1.image(input_file, use_container_width=True)
-            # col2.image(input_file, use_container_width=True)
-            col1.image(input_file, use_column_width=True)
-            col2.image(super, use_column_width=True)
+#             col1, col2 = st.columns([1, 1]) 
+#             with col1:
+#                 st.subheader("Input Image")
+#             with col2:
+#                 st.subheader("Report Analysis") 
+#             # col1.image(input_file, use_container_width=True)
+#             # col2.image(input_file, use_container_width=True)
+#             col1.image(input_file, use_column_width=True)
+#             col2.image(super, use_column_width=True)
             
-            col3, col4 = st.columns([1, 1]) 
-            with col3:
-                st.subheader("Grad-CAM++ Image")  # Change this title as needed
-            with col4:
-                st.subheader("Heatmap")  # Change this title as needed
+#             col3, col4 = st.columns([1, 1]) 
+#             with col3:
+#                 st.subheader("Grad-CAM++ Image")  # Change this title as needed
+#             with col4:
+#                 st.subheader("Heatmap")  # Change this title as needed
 
-            col3.image(super, use_column_width=True)  # Replace with actual image variable
-            col4.image(colormap, use_column_width=True)
-        else:
-            image_array, pred_class, pred_val, mask = lime_operations(image)
-            st.write(pred_val, pred_class)
-            # st.image(mark_boundaries(image_array / 255.0, mask))
-            # st.image(input_file)
-            col1, col2 = st.columns([1, 1]) 
-            with col1:
-                st.subheader("Input Image")
-            with col2:
-                st.subheader("Report Analysis") 
-            # col1.image(input_file, use_container_width=True)
-            # col2.image(input_file, use_container_width=True)
-            col1.image(input_file, use_column_width=True)
-            col2.image(mark_boundaries(image_array / 255.0, mask), use_column_width=True)
+#             col3.image(super, use_column_width=True)  # Replace with actual image variable
+#             col4.image(colormap, use_column_width=True)
+#         else:
+#             image_array, pred_class, pred_val, mask = lime_operations(image)
+#             st.write(pred_val, pred_class)
+#             # st.image(mark_boundaries(image_array / 255.0, mask))
+#             # st.image(input_file)
+#             col1, col2 = st.columns([1, 1]) 
+#             with col1:
+#                 st.subheader("Input Image")
+#             with col2:
+#                 st.subheader("Report Analysis") 
+#             # col1.image(input_file, use_container_width=True)
+#             # col2.image(input_file, use_container_width=True)
+#             col1.image(input_file, use_column_width=True)
+#             col2.image(mark_boundaries(image_array / 255.0, mask), use_column_width=True)
 
-            col3, col4 = st.columns([1, 1]) 
-            with col3:
-                st.subheader("Processed Image")
-            with col4:
-                st.subheader("Mapped Image") 
-            col3.image(input_file, use_column_width=True)  # Replace with actual image variable
-            col4.image(input_file, use_column_width=True) 
-        # End of Swastik's Code
-        
-            
-            
-            
-            
+#             col3, col4 = st.columns([1, 1]) 
+#             with col3:
+#                 st.subheader("Processed Image")
+#             with col4:
+#                 st.subheader("Mapped Image") 
+#             col3.image(input_file, use_column_width=True)
+#             col4.image(input_file, use_column_width=True)
+
+# --- End of Old Classify Button ---
+
+
 st.markdown("""
     <style>
         div.stHorizontalBlock.st-emotion-cache-ocqkz7.e6rk8up0 {
@@ -650,6 +895,11 @@ st.markdown("""
             color: gray !important;
             font-family: "Poppins", sans-serif;
             margin-top: 0;
+        }
+
+        div.row-widget.stButton > button.css-1ak6eu7.edgvbvh10 {
+            margin-top: 3.5px;  
+            # transform: translateY(10px);
         }
 
         .stButton {
@@ -723,43 +973,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# img_path = "imgs/sidebar_incepres_logo.png"
-# img_base64 = img_to_base64(img_path)
-
-
-# st.markdown(
-#     """
-#     <style>
-#         .stVerticalBlock .stHeading h2 {
-#             color: #20b8cd;
-#             font-weight: 600;
-#             font-size: 25px;
-#         }
-#     </style>
-#     """,
-#     unsafe_allow_html=True
-# )
-
-
 st.markdown(
     """
     <style>
-        /* Custom color for headings */
         h1, h2, h3 {
             color: #20b8cd !important;
             font-weight: 600;
         }
 
-        /* Style for the sidebar image */
         .sidebar-img {
             display: block;
             # margin-left: auto;
             # margin-right: auto;
-            margin: 0 auto;
+            margin: 0 0;
             width: 100%;
         }
 
-        /* Divider styling */
         hr {
             border: 1px solid #20b8cd;
         }
@@ -785,6 +1014,21 @@ st.markdown(
     <style>
         .st-emotion-cache-1espb9k.egexzqm0 > p {
             text-align: justify;                
+        }
+
+        .css-nahz7x.e16nr0p34 > p:only-child {
+            text-align: justify;
+            font-size: 15px;
+        }
+
+        button.css-dw5rzi.edgvbvh3 > svg.e1fb0mya1.css-fblp2m.ex0cdmw0 {
+            # font-family: "FontAwesome"; /* If using FontAwesome */
+            # content: "\f104"; /* Left arrow in FontAwesome */
+            color: blue;
+        }
+        
+        div.e1fqkh3o4{
+            padding-top: 50px;     
         }
     </style>
     """,
@@ -918,7 +1162,6 @@ st.sidebar.markdown(
     """,
     unsafe_allow_html=True
 )
-
-st.sidebar.markdown("---")
+# st.sidebar.markdown("---")
 # st.sidebar.header("FAQ's")
 # ------------------ End of Side Bar ------------------ #
