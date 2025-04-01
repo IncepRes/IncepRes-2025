@@ -504,7 +504,7 @@ def gradcam_operations(image):
     heatmap = make_gradcam_heatmap(image_array, model, 'add_8')        
     super = display_gradcam(grad_image_array, heatmap)
     
-    return pred_class, pred_val, super, pred_val_prob
+    return pred_class, pred_val, super, pred_val_prob, heatmap
 
 def gradcampp_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
@@ -513,7 +513,7 @@ def gradcampp_operations(image):
     heatmap_plus = grad_cam_plus(model, image_array, layer_name='add_8')       
     super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
     
-    return pred_class, pred_val, super, pred_val_prob
+    return pred_class, pred_val, super, pred_val_prob, heatmap_plus
     
 def lime_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
@@ -553,10 +553,17 @@ if classify_button:
         
         # Swastik's Code
         if output_type == "Grad-CAM":
-            pred_class, pred_val, super, pred_val_prob = gradcam_operations(image)
+            pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
             st.write(pred_val, pred_class, pred_val_prob)
-            # st.image(super)
-            # st.image(input_file)
+            
+            if heatmap.max() > 1:  
+                heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
+
+            # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
+            colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
+            colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
+            
+            
             col1, col2 = st.columns([1, 1]) 
             with col1:
                 st.subheader("Input Image")
@@ -571,15 +578,21 @@ if classify_button:
             with col3:
                 st.subheader("Grad-CAM Image")  # Change this title as needed
             with col4:
-                st.subheader("Mapped Image")  # Change this title as needed
+                st.subheader("Heatmap")  # Change this title as needed
 
-            col3.image(input_file, use_column_width=True)  # Replace with actual image variable
-            col4.image(input_file, use_column_width=True)
+            col3.image(super, use_column_width=True)  # Replace with actual image variable
+            col4.image(colormap, use_column_width=True)
         elif output_type == "Grad-CAM++":
-            pred_class, pred_val, super, pred_val_prob = gradcampp_operations(image)
+            pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
             st.write(pred_val, pred_class, pred_val_prob)
-            # st.image(super)
-            # st.image(input_file)
+            
+            if heatmap.max() > 1:  
+                heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
+
+            # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
+            colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
+            colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
+            
             col1, col2 = st.columns([1, 1]) 
             with col1:
                 st.subheader("Input Image")
@@ -594,10 +607,10 @@ if classify_button:
             with col3:
                 st.subheader("Grad-CAM++ Image")  # Change this title as needed
             with col4:
-                st.subheader("Mapped Image")  # Change this title as needed
+                st.subheader("Heatmap")  # Change this title as needed
 
-            col3.image(input_file, use_column_width=True)  # Replace with actual image variable
-            col4.image(input_file, use_column_width=True)
+            col3.image(super, use_column_width=True)  # Replace with actual image variable
+            col4.image(colormap, use_column_width=True)
         else:
             image_array, pred_class, pred_val, mask = lime_operations(image)
             st.write(pred_val, pred_class)
