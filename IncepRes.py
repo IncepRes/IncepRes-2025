@@ -489,38 +489,40 @@ def classify_operations(image, model):
     image_array = np.expand_dims(image_array, axis=0)
     
     grad_image_array = np.array(image)
-
-    pred_val = np.argmax(model.predict(image_array), axis=-1)[0]
+    pred_val_prob = model.predict(image_array)
+    print(pred_val_prob)
+    pred_val = np.argmax(pred_val_prob, axis=-1)[0]
     pred_class = class_names[pred_val]
+    pred_val_prob = pred_val_prob[0, pred_val]
     
-    return pred_class, pred_val, image_array, grad_image_array
+    return pred_class, pred_val, image_array, grad_image_array, pred_val_prob
 
 def gradcam_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
-    pred_class, pred_val, image_array, grad_image_array = classify_operations(image, model)
+    pred_class, pred_val, image_array, grad_image_array, pred_val_prob = classify_operations(image, model)
     
     heatmap = make_gradcam_heatmap(image_array, model, 'add_8')        
     super = display_gradcam(grad_image_array, heatmap)
     
-    return pred_class, pred_val, super
+    return pred_class, pred_val, super, pred_val_prob
 
 def gradcampp_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
-    pred_class, pred_val, image_array, grad_image_array = classify_operations(image, model)
+    pred_class, pred_val, image_array, grad_image_array, pred_val_prob = classify_operations(image, model)
     
     heatmap_plus = grad_cam_plus(model, image_array, layer_name='add_8')       
     super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
     
-    return pred_class, pred_val, super
+    return pred_class, pred_val, super, pred_val_prob
     
 def lime_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
-    pred_class, pred_val, image_array, grad_image_array = classify_operations(image, model)
+    pred_class, pred_val, image_array, grad_image_array, pred_val_prob = classify_operations(image, model)
     
     temp, mask = lime_explainer(image_array, model)       
     # super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
     
-    return grad_image_array, pred_class, pred_val, mask
+    return grad_image_array, pred_class, pred_val, mask, pred_val_prob
     
 # End of Swastik's Code
 print(image)
@@ -551,33 +553,51 @@ if classify_button:
         
         # Swastik's Code
         if output_type == "Grad-CAM":
-            pred_class, pred_val, super = gradcam_operations(image)
-            st.write(pred_val, pred_class)
-            st.image(super)
-            st.image(input_file)
+            pred_class, pred_val, super, pred_val_prob = gradcam_operations(image)
+            st.write(pred_val, pred_class, pred_val_prob)
+            # st.image(super)
+            # st.image(input_file)
+            col1, col2 = st.columns([1, 1]) 
+            with col1:
+                st.subheader("Input Image")
+            with col2:
+                st.subheader("Grad-CAM Image") 
+            # col1.image(input_file, use_container_width=True)
+            # col2.image(input_file, use_container_width=True)
+            col1.image(input_file, use_column_width=True)
+            col2.image(super, use_column_width=True)
         elif output_type == "Grad-CAM++":
-            pred_class, pred_val, super = gradcampp_operations(image)
-            st.write(pred_val, pred_class)
-            st.image(super)
-            st.image(input_file)
+            pred_class, pred_val, super, pred_val_prob = gradcampp_operations(image)
+            st.write(pred_val, pred_class, pred_val_prob)
+            # st.image(super)
+            # st.image(input_file)
+            col1, col2 = st.columns([1, 1]) 
+            with col1:
+                st.subheader("Input Image")
+            with col2:
+                st.subheader("Grad-CAM++ Image") 
+            # col1.image(input_file, use_container_width=True)
+            # col2.image(input_file, use_container_width=True)
+            col1.image(input_file, use_column_width=True)
+            col2.image(super, use_column_width=True)
         else:
             image_array, pred_class, pred_val, mask = lime_operations(image)
             st.write(pred_val, pred_class)
-            st.image(mark_boundaries(image_array / 255.0, mask))
-            st.image(input_file)
+            # st.image(mark_boundaries(image_array / 255.0, mask))
+            # st.image(input_file)
+            col1, col2 = st.columns([1, 1]) 
+            with col1:
+                st.subheader("Input Image")
+            with col2:
+                st.subheader("LIME Image") 
+            # col1.image(input_file, use_container_width=True)
+            # col2.image(input_file, use_container_width=True)
+            col1.image(input_file, use_column_width=True)
+            col2.image(mark_boundaries(image_array / 255.0, mask), use_column_width=True)
         # st.write("✅ Button Clicked!")
         
         # End of Swastik's Code
         
-        col1, col2 = st.columns([1, 1]) 
-        with col1:
-            st.subheader("Input Image")
-        with col2:
-            st.subheader("Output Image") 
-        # col1.image(input_file, use_container_width=True)
-        # col2.image(input_file, use_container_width=True)
-        col1.image(input_file, use_column_width=True)
-        col2.image(input_file, use_column_width=True)
             
             
             
