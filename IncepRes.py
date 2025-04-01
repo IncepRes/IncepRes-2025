@@ -7,6 +7,14 @@ import io
 import time
 import json
 import base64
+import tensorflow as tf
+from tensorflow import keras
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import cv2
+from IPython.display import Image as im, display
+from lime.lime_image import LimeImageExplainer
+from skimage.segmentation import mark_boundaries
 
 st.set_page_config(
     page_title="IncepRes",
@@ -22,6 +30,12 @@ st.set_page_config(
     }
 )
 
+# CDN's for Icons
+people_icon_url = "https://cdn-icons-png.flaticon.com/512/456/456212.png"
+linkedin_icon_url = "https://cdn-icons-png.flaticon.com/512/174/174857.png"
+github_icon_url = "https://cdn-icons-png.flaticon.com/512/733/733609.png"
+
+# ------------------ Main Content Started Here ------------------ #
 col1 = st.container()
 with col1:
     st.markdown("""
@@ -202,7 +216,6 @@ st.markdown(
         font-weight: 360;
         font-family: "Poppins", sans-serif;
     }
-
     </style>
     """,
     unsafe_allow_html=True,
@@ -210,22 +223,308 @@ st.markdown(
 # ------------------ END of CSS for File Uploader ------------------ #
 
 # ------------------ File Uploader ------------------ #
+hide_file_name_and_remove_button = """
+    <style>
+        div.stFileUploaderFile.st-emotion-cache-12xsiil.e1blfcsg10 {
+            display: flex !important;
+            align-items: center; 
+        }
+        
+        /* Style for the remove button (X) */
+        div.stFileUploaderFile.st-emotion-cache-12xsiil.e1blfcsg10 button {
+            margin-left: 10px;
+        }
+
+        .success_toast {
+            position: fixed;
+            top: 9%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-image: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(139, 195, 74, 0.8));
+            color: #0e1117;
+            padding: 12px 10px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            font-family: "Poppins", sans-serif;
+            text-align: center;
+            z-index: 1000;
+            opacity: 0.5;
+            animation: fadeInOut 4s ease-in-out forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+"""
+st.markdown(hide_file_name_and_remove_button, unsafe_allow_html=True)
+
+image = None
+
+
+# Function to display custom toast message
+def show_success_toast(message):
+    st.markdown(f'<div class="success_toast">{message}</div>', unsafe_allow_html=True)
+
+# Initialize session state for uploaded file name if it doesn't exist
+# if 'uploaded_file' not in st.session_state:
+#     st.session_state['uploaded_file'] = None
+
+# uploaded_file=None
+
+# File uploader widget
 input_file = st.file_uploader("", type=["png", "jpg", "jpeg", "pdf"])
 
+# Check if a file is already uploaded
 if input_file is not None:
     file_type = input_file.type
+    file_name = input_file.name
 
+    # if st.session_state['uploaded_file'] is None:
+    #     st.session_state['uploaded_file'] = file_name
     if file_type in ["image/png", "image/jpeg"]:
-        image = Image.open(input_file)
-
+        image = Image.open(input_file).convert("RGB")
+        print(image)
+        show_success_toast(f"Report uploaded successfully...")
     elif file_type == "application/pdf":
         pdf_document = fitz.open(stream=input_file.read(), filetype="pdf")
-
+        show_success_toast(f"PDF uploaded successfully...")
     else:
         st.error("Unsupported file format!")
-# ------------------ End of File Uploader ------------------ #
+
+# if input_file is None and st.session_state['uploaded_file'] is not None:
+# if input_file is None:
+#     st.session_state['uploaded_file'] = None
 
 # ----------------------------- SELECT BOX & SUBMIT BUTTON -------------------------------- #
+
+
+# Swastik's Code
+class_names = ['all_benign', 'all_early', 'all_pre', 'all_pro', 'brain_glioma', 'brain_menin', 'brain_tumor', 'breast_benign', 'breast_malignant', 'cervix_dyk', 'cervix_koc', 'cervix_mep', 'cervix_pab', 'cervix_sfi', 'colon_aca', 'colon_bnt', 'kidney_normal', 'kidney_tumor', 'lung_aca', 'lung_bnt', 'lung_scc', 'lymph_cll', 'lymph_fl', 'lymph_mcl', 'oral_normal', 'oral_scc']
+
+def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
+    # First, we create a model that maps the input image to the activations
+    # of the last conv layer as well as the output predictions
+    grad_model = keras.models.Model(
+        model.inputs, [model.get_layer(last_conv_layer_name).output, model.output]
+    )
+
+    # Then, we compute the gradient of the top predicted class for our input image
+    # with respect to the activations of the last conv layer
+    with tf.GradientTape() as tape:
+        last_conv_layer_output, preds = grad_model(img_array)
+        if pred_index is None:
+            pred_index = tf.argmax(preds[0])
+        class_channel = preds[:, pred_index]
+
+    # This is the gradient of the output neuron (top predicted or chosen)
+    # with regard to the output feature map of the last conv layer
+    grads = tape.gradient(class_channel, last_conv_layer_output)
+
+    # This is a vector where each entry is the mean intensity of the gradient
+    # over a specific feature map channel
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+
+    # We multiply each channel in the feature map array
+    # by "how important this channel is" with regard to the top predicted class
+    # then sum all the channels to obtain the heatmap class activation
+    last_conv_layer_output = last_conv_layer_output[0]
+    heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
+    heatmap = tf.squeeze(heatmap)
+
+    # For visualization purpose, we will also normalize the heatmap between 0 & 1
+    heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
+    return heatmap.numpy()
+    
+def display_gradcam(image_array, heatmap, alpha=0.4):
+    # Ensure image is in the correct format (float32 for scaling)
+    img = np.array(image_array, dtype=np.float32)
+
+    # Rescale heatmap to range 0-255
+    heatmap = np.uint8(255 * heatmap)
+
+    # Use jet colormap to colorize heatmap
+    jet = mpl.colormaps["jet"]
+    
+    # Get RGB values of the colormap
+    jet_colors = jet(np.arange(256))[:, :3]
+    jet_heatmap = jet_colors[heatmap]
+
+    # Create an image with RGB heatmap
+    jet_heatmap = keras.utils.array_to_img(jet_heatmap)
+    jet_heatmap = jet_heatmap.resize((img.shape[1], img.shape[0]))  # Match original image size
+    jet_heatmap = np.array(jet_heatmap)
+
+    # Superimpose heatmap on original image
+    superimposed_img = jet_heatmap * alpha + img
+    superimposed_img = np.clip(superimposed_img, 0, 255).astype(np.uint8)  # Ensure valid pixel values
+
+    # # Display Grad-CAM
+    # plt.figure(figsize=(6, 6))
+    # plt.imshow(superimposed_img)
+    # plt.axis("off")  # Hide axes
+    # plt.show()
+    
+    return superimposed_img
+
+def show_imgwithheat(img, heatmap, alpha=0.4, return_array=False):
+    """Show the image with heatmap.
+
+    Args:
+        img_path: string.
+        heatmap: image array, get it by calling grad_cam().
+        alpha: float, transparency of heatmap.
+        return_array: bool, return a superimposed image array or not.
+    Return:
+        None or image array.
+    """
+    # img = cv2.imread(img_path)
+    heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
+    heatmap = (heatmap*255).astype("uint8")
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    superimposed_img = heatmap * alpha + img
+    superimposed_img = np.clip(superimposed_img, 0, 255).astype("uint8")
+    superimposed_img = cv2.cvtColor(superimposed_img, cv2.COLOR_BGR2RGB)
+
+    imgwithheat = Image.fromarray(superimposed_img)
+    try:
+        display(imgwithheat)
+    except NameError:
+        imgwithheat.show()
+
+    if return_array:
+        return superimposed_img
+
+def grad_cam_plus(model, img,
+                  layer_name="block5_conv3", label_name=None,
+                  category_id=None):
+    """Get a heatmap by Grad-CAM++.
+
+    Args:
+        model: A model object, build from tf.keras 2.X.
+        img: An image ndarray.
+        layer_name: A string, layer name in model.
+        label_name: A list or None,
+            show the label name by assign this argument,
+            it should be a list of all label names.
+        category_id: An integer, index of the class.
+            Default is the category with the highest score in the prediction.
+
+    Return:
+        A heatmap ndarray(without color).
+    """
+    # img_tensor = np.expand_dims(img, axis=0)
+    img_tensor = img
+    conv_layer = model.get_layer(layer_name)
+    heatmap_model = keras.Model([model.inputs], [conv_layer.output, model.output])
+
+    with tf.GradientTape() as gtape1:
+        with tf.GradientTape() as gtape2:
+            with tf.GradientTape() as gtape3:
+                conv_output, predictions = heatmap_model(img_tensor)
+                if category_id is None:
+                    category_id = np.argmax(predictions[0])
+                if label_name is not None:
+                    print(label_name[category_id])
+                output = predictions[:, category_id]
+                conv_first_grad = gtape3.gradient(output, conv_output)
+            conv_second_grad = gtape2.gradient(conv_first_grad, conv_output)
+        conv_third_grad = gtape1.gradient(conv_second_grad, conv_output)
+
+    global_sum = np.sum(conv_output, axis=(0, 1, 2))
+
+    alpha_num = conv_second_grad[0]
+    alpha_denom = conv_second_grad[0]*2.0 + conv_third_grad[0]*global_sum
+    alpha_denom = np.where(alpha_denom != 0.0, alpha_denom, 1e-10)
+
+    alphas = alpha_num/alpha_denom
+    alpha_normalization_constant = np.sum(alphas, axis=(0,1))
+    alphas /= alpha_normalization_constant
+
+    weights = np.maximum(conv_first_grad[0], 0.0)
+
+    deep_linearization_weights = np.sum(weights*alphas, axis=(0,1))
+    grad_cam_map = np.sum(deep_linearization_weights*conv_output[0], axis=2)
+
+    heatmap = np.maximum(grad_cam_map, 0)
+    max_heat = np.max(heatmap)
+    if max_heat == 0:
+        max_heat = 1e-10
+    heatmap /= max_heat
+
+    return heatmap
+
+def lime_explainer(image_array, model):
+    explainer = LimeImageExplainer()
+    print("Image shape:", image_array[0].shape)
+    # Explain the instance with LIME
+    explanation = explainer.explain_instance(image_array[0], model.predict, top_labels=5, hide_color=None, num_samples=100)
+    # explanation = explainer.explain_instance(image_array[0], model.predict, top_labels=5, hide_color=0, num_samples=512)
+
+    # Get explanation for top label
+    temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=True, num_features=5, hide_rest=True)
+    
+    temp_resized = cv2.resize(temp, (512, 512), interpolation=cv2.INTER_CUBIC)
+    mask_resized = cv2.resize(mask.astype(np.uint8), (512, 512), interpolation=cv2.INTER_NEAREST)
+
+    return temp_resized, mask_resized
+
+
+
+
+
+
+
+
+
+def classify_operations(image, model):
+    image_res = image.resize((72,72))
+    # Convert to NumPy array
+    image_array = np.array(image_res)
+    print(image_array.shape)
+    image_array = np.expand_dims(image_array, axis=0)
+    
+    grad_image_array = np.array(image)
+
+    pred_val = np.argmax(model.predict(image_array), axis=-1)[0]
+    pred_class = class_names[pred_val]
+    
+    return pred_class, pred_val, image_array, grad_image_array
+
+def gradcam_operations(image):
+    model = keras.models.load_model('incep-res__26class_2dec2024.h5')
+    pred_class, pred_val, image_array, grad_image_array = classify_operations(image, model)
+    
+    heatmap = make_gradcam_heatmap(image_array, model, 'add_8')        
+    super = display_gradcam(grad_image_array, heatmap)
+    
+    return pred_class, pred_val, super
+
+def gradcampp_operations(image):
+    model = keras.models.load_model('incep-res__26class_2dec2024.h5')
+    pred_class, pred_val, image_array, grad_image_array = classify_operations(image, model)
+    
+    heatmap_plus = grad_cam_plus(model, image_array, layer_name='add_8')       
+    super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
+    
+    return pred_class, pred_val, super
+    
+def lime_operations(image):
+    model = keras.models.load_model('incep-res__26class_2dec2024.h5')
+    pred_class, pred_val, image_array, grad_image_array = classify_operations(image, model)
+    
+    temp, mask = lime_explainer(image_array, model)       
+    # super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
+    
+    return grad_image_array, pred_class, pred_val, mask
+    
+# End of Swastik's Code
+print(image)
+    
 col1, col2 = st.columns([5, 1])
 
 with col1:
@@ -249,10 +548,47 @@ if classify_button:
     else:
         with st.spinner('Analysing... Please wait'):
             time.sleep(3)
-        st.write("✅ Button Clicked!")
-
+        
+        # Swastik's Code
+        if output_type == "Grad-CAM":
+            pred_class, pred_val, super = gradcam_operations(image)
+            st.write(pred_val, pred_class)
+            st.image(super)
+            st.image(input_file)
+        elif output_type == "Grad-CAM++":
+            pred_class, pred_val, super = gradcampp_operations(image)
+            st.write(pred_val, pred_class)
+            st.image(super)
+            st.image(input_file)
+        else:
+            image_array, pred_class, pred_val, mask = lime_operations(image)
+            st.write(pred_val, pred_class)
+            st.image(mark_boundaries(image_array / 255.0, mask))
+            st.image(input_file)
+        # st.write("✅ Button Clicked!")
+        
+        # End of Swastik's Code
+        
+        col1, col2 = st.columns([1, 1]) 
+        with col1:
+            st.subheader("Input Image")
+        with col2:
+            st.subheader("Output Image") 
+        # col1.image(input_file, use_container_width=True)
+        # col2.image(input_file, use_container_width=True)
+        col1.image(input_file, use_column_width=True)
+        col2.image(input_file, use_column_width=True)
+            
+            
+            
+            
 st.markdown("""
     <style>
+        div.stHorizontalBlock.st-emotion-cache-ocqkz7.e6rk8up0 {
+            margin: 0px !important;
+            padding: 0px !important;
+        }
+            
         div[data-baseweb="select"] span[title="Select Output Type..."] {
             color: gray !important;
             font-family: "Poppins", sans-serif;
@@ -303,10 +639,10 @@ st.markdown("""
             font-weight: 700;
             color: #0e1117 !important;
         }
+
     </style>
     """, unsafe_allow_html=True)
 # ------------------- End of Selector & Button ------------------- #
-
 
 # ----------------------- Helper Functions ----------------------- #
 def img_to_base64(image_path):
@@ -330,27 +666,61 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-img_path = "imgs/sidebar_incepres_logo.png"
-img_base64 = img_to_base64(img_path)
-if img_base64:
-    st.sidebar.markdown(
-        f'<img src="data:image/png;base64,{img_base64}">',
-        unsafe_allow_html=True,
-    )
-st.sidebar.markdown("---")
+# img_path = "imgs/sidebar_incepres_logo.png"
+# img_base64 = img_to_base64(img_path)
+
+
+# st.markdown(
+#     """
+#     <style>
+#         .stVerticalBlock .stHeading h2 {
+#             color: #20b8cd;
+#             font-weight: 600;
+#             font-size: 25px;
+#         }
+#     </style>
+#     """,
+#     unsafe_allow_html=True
+# )
+
 
 st.markdown(
     """
     <style>
-        .stVerticalBlock .stHeading h2 {
-            color: #20b8cd;
+        /* Custom color for headings */
+        h1, h2, h3 {
+            color: #20b8cd !important;
             font-weight: 600;
-            font-size: 25px;
+        }
+
+        /* Style for the sidebar image */
+        .sidebar-img {
+            display: block;
+            # margin-left: auto;
+            # margin-right: auto;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Divider styling */
+        hr {
+            border: 1px solid #20b8cd;
         }
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# Load and display sidebar image
+img_path = "imgs/sidebar_incepres_logo.png"
+img_base64 = img_to_base64(img_path)
+if img_base64:
+    st.sidebar.markdown(
+        f'<img class="sidebar-img" src="data:image/png;base64,{img_base64}">',
+        unsafe_allow_html=True,
+    )
+
+st.sidebar.markdown("---")
 
 st.sidebar.header("About")
 st.markdown(
@@ -369,11 +739,6 @@ st.sidebar.markdown("Cancer detection remains a critical challenge, with traditi
 st.sidebar.markdown("---")
 
 st.sidebar.header("Developers")
-# Developer Names
-people_icon_url = "https://cdn-icons-png.flaticon.com/512/456/456212.png"
-linkedin_icon_url = "https://cdn-icons-png.flaticon.com/512/174/174857.png"
-github_icon_url = "https://cdn-icons-png.flaticon.com/512/733/733609.png"
-
 st.sidebar.markdown(
     f"""
     <style>
@@ -439,10 +804,10 @@ st.sidebar.markdown(
         <div class="tooltip">
             <span>Swastik Karmakar</span>
             <div class="tooltiptext">
-                <a href="https://www.linkedin.com/in/swastik-karmakar-541bb7252/" target="_blank">
+                <a href="https://www.linkedin.com/in/swastik-karmakar-541bb7252" target="_blank">
                     <img src="{linkedin_icon_url}" alt="LinkedIn">
                 </a>
-                <a href="https://www.linkedin.com/in/swastik-karmakar-541bb7252/" target="_blank">
+                <a href="https://www.github.com/Darth-Hannibal" target="_blank">
                     <img src="{github_icon_url}" alt="GitHub">
                 </a>
             </div>
@@ -472,7 +837,7 @@ st.sidebar.markdown(
                 <a href="https://www.linkedin.com/in/aishik-maitra-4199b5250/" target="_blank">
                     <img src="{linkedin_icon_url}" alt="LinkedIn">
                 </a>
-                <a href="https://github.com/aishik-maitra" target="_blank">
+                <a href="https://github.com/aishikmaitra" target="_blank">
                     <img src="{github_icon_url}" alt="GitHub">
                 </a>
             </div>
@@ -484,10 +849,10 @@ st.sidebar.markdown(
         <div class="tooltip">
             <span>Ayush Das</span>
             <div class="tooltiptext">
-                <a href="https://www.linkedin.com/in/ayush-das-499a12247/" target="_blank">
+                <a href="https://www.linkedin.com/in/ayush-das-499a12247" target="_blank">
                     <img src="{linkedin_icon_url}" alt="LinkedIn">
                 </a>
-                <a href="https://github.com/ayush-das" target="_blank">
+                <a href="https://github.com/infinity-ayush" target="_blank">
                     <img src="{github_icon_url}" alt="GitHub">
                 </a>
             </div>
@@ -498,6 +863,5 @@ st.sidebar.markdown(
 )
 
 st.sidebar.markdown("---")
-
-st.sidebar.header("FAQ's")
+# st.sidebar.header("FAQ's")
 # ------------------ End of Side Bar ------------------ #
