@@ -561,11 +561,20 @@ if classify_button:
             with col1:
                 st.subheader("Input Image")
             with col2:
-                st.subheader("Grad-CAM Image") 
+                st.subheader("Report Analysis") 
             # col1.image(input_file, use_container_width=True)
             # col2.image(input_file, use_container_width=True)
             col1.image(input_file, use_column_width=True)
             col2.image(super, use_column_width=True)
+            
+            col3, col4 = st.columns([1, 1]) 
+            with col3:
+                st.subheader("Grad-CAM Image")  # Change this title as needed
+            with col4:
+                st.subheader("Mapped Image")  # Change this title as needed
+
+            col3.image(input_file, use_column_width=True)  # Replace with actual image variable
+            col4.image(input_file, use_column_width=True)
         elif output_type == "Grad-CAM++":
             pred_class, pred_val, super, pred_val_prob = gradcampp_operations(image)
             st.write(pred_val, pred_class, pred_val_prob)
@@ -575,11 +584,20 @@ if classify_button:
             with col1:
                 st.subheader("Input Image")
             with col2:
-                st.subheader("Grad-CAM++ Image") 
+                st.subheader("Report Analysis") 
             # col1.image(input_file, use_container_width=True)
             # col2.image(input_file, use_container_width=True)
             col1.image(input_file, use_column_width=True)
             col2.image(super, use_column_width=True)
+            
+            col3, col4 = st.columns([1, 1]) 
+            with col3:
+                st.subheader("Grad-CAM++ Image")  # Change this title as needed
+            with col4:
+                st.subheader("Mapped Image")  # Change this title as needed
+
+            col3.image(input_file, use_column_width=True)  # Replace with actual image variable
+            col4.image(input_file, use_column_width=True)
         else:
             image_array, pred_class, pred_val, mask = lime_operations(image)
             st.write(pred_val, pred_class)
@@ -589,13 +607,19 @@ if classify_button:
             with col1:
                 st.subheader("Input Image")
             with col2:
-                st.subheader("LIME Image") 
+                st.subheader("Report Analysis") 
             # col1.image(input_file, use_container_width=True)
             # col2.image(input_file, use_container_width=True)
             col1.image(input_file, use_column_width=True)
             col2.image(mark_boundaries(image_array / 255.0, mask), use_column_width=True)
-        # st.write("✅ Button Clicked!")
-        
+
+            col3, col4 = st.columns([1, 1]) 
+            with col3:
+                st.subheader("Processed Image")
+            with col4:
+                st.subheader("Mapped Image") 
+            col3.image(input_file, use_column_width=True)  # Replace with actual image variable
+            col4.image(input_file, use_column_width=True) 
         # End of Swastik's Code
         
             
