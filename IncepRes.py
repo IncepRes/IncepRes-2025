@@ -731,7 +731,7 @@ if classify_button:
                     st.subheader("Report Analysis")
                 col1.image(input_file, use_column_width=True)
                 # col2.image(super, use_column_width=True)
-                col2.write(pred_class+" ("+ str(pred_val_prob) + ")")
+                col2.write(pred_class + " (" + "{:.4f}".format(pred_val_prob * 100) + " %)")
 
                 col3, col4 = st.columns([1, 1])
                 with col3:
@@ -758,7 +758,8 @@ if classify_button:
                 with col2:
                     st.subheader("Report Analysis")
                 col1.image(input_file, use_column_width=True)
-                col2.image(super, use_column_width=True)
+                # col2.image(super, use_column_width=True)
+                col2.write(pred_class + " (" + "{:.4f}".format(pred_val_prob * 100) + " %)")
 
                 col3, col4 = st.columns([1, 1])
                 with col3:
