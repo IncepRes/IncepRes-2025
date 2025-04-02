@@ -723,12 +723,13 @@ if classify_button:
 
                 # Determine border color based on probability
                 probability = pred_val_prob * 100
+
                 if probability <= 50:
-                    border_color = "#FF4500"  # Reddish
+                    border_color = "#a4161a"  # Reddish
                 elif 51 <= probability <= 80:
-                    border_color = "#FFD700"  # Yellowish
+                    border_color = "#ffa200"  # Yellowish
                 else:
-                    border_color = "#32CD32"  # Greenish
+                    border_color = "#09a129"  # Greenish
 
                 # Custom CSS for styling the Report Analysis section with dynamic border
                 st.markdown(
@@ -796,7 +797,7 @@ if classify_button:
                             <div class="report-title">Report Analysis</div>
                             <div class="report-text-container">
                                 <span>Cancer Type: <span class="pred-value">{pred_class}</span></span>
-                                <span>Prediction Strength: <span class="pred-value">{probability:.4f} %</span></span>
+                                <span>Prediction Strength: <span class="pred-value">{probability:.2f} %</span></span>
                             </div>
                         </div>
                         """,
@@ -818,23 +819,21 @@ if classify_button:
 
             # ---------- Grad-Cam++ Analysis ----------
             elif output_type == "Grad-CAM++":
-                # Perform Grad-CAM++ analysis
                 pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
                 
-                # Process the heatmap and apply colormap
                 if heatmap.max() > 1:
                     heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
                 colormap = plt.cm.plasma(heatmap)
                 colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
 
-                # Determine border color based on probability
                 probability = pred_val_prob * 100
+
                 if probability <= 50:
-                    border_color = "#FF4500"  # Reddish
+                    border_color = "#a4161a"  # Reddish
                 elif 51 <= probability <= 80:
-                    border_color = "#FFD700"  # Yellowish
+                    border_color = "#ffa200"  # Yellowish
                 else:
-                    border_color = "#32CD32"  # Greenish
+                    border_color = "#09a129"  # Greenish
 
                 # Custom CSS for styling the Report Analysis section with dynamic border
                 st.markdown(
@@ -902,7 +901,7 @@ if classify_button:
                             <div class="report-title">Report Analysis</div>
                             <div class="report-text-container">
                                 <span>Cancer Type: <span class="pred-value">{pred_class}</span></span>
-                                <span>Prediction Strength: <span class="pred-value">{probability:.4f} %</span></span>
+                                <span>Prediction Strength: <span class="pred-value">{probability:.2f} %</span></span>
                             </div>
                         </div>
                         """,
@@ -920,126 +919,11 @@ if classify_button:
                 with col3:
                     st.image(colormap, use_column_width=True)
                     st.markdown('<div class="image-subheader">Heatmap</div>', unsafe_allow_html=True)
-                    
             # ---------- End of Grad-Cam++ Analysis ----------
-
             
-            # Simulate processing time for demonstration
             time.sleep(3)
-        # Hide the full-screen spinner once the processing is done
         hide_full_screen_spinner()
 # ----------------------------------- End of Classify Button with a Spinner Added on 02/04/2025 -----------------------------------
-
-
-# --- Old Classify Button (If any problem arise after clicking Classify button, then uncomment this code and comment out the above new code) ---
-# col1, col2 = st.columns([5, 1])
-
-# with col1:
-#     options = ["Select Output Type..."] + ["Grad-CAM", "Grad-CAM++", "LIME"]
-#     output_type = st.selectbox(
-#         label="",
-#         options=options,
-#         index=0,
-#         key="output_type"
-#     )
-
-# with col2:
-#     classify_button = st.button("Classify ➤", key="submit_btn")
-# if classify_button:
-#     if output_type == "Select Output Type..." and ('input_file' not in locals() or input_file is None):
-#         st.warning("⚠  Please upload an image and select an output parameter!")
-#     elif output_type == "Select Output Type...":
-#         st.warning("⚠  Please select an output parameter!")
-#     elif 'input_file' not in locals() or input_file is None:
-#         st.warning("⚠  Please upload an image!")
-#     else:
-#         with st.spinner('Analysing... Please wait'):
-#             time.sleep(3)
-        
-#         if output_type == "Grad-CAM":
-#             pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
-#             st.write(pred_val, pred_class, pred_val_prob)
-            
-#             if heatmap.max() > 1:  
-#                 heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
-
-#             # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
-#             colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
-#             colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
-            
-            
-#             col1, col2 = st.columns([1, 1]) 
-#             with col1:
-#                 st.subheader("Input Image")
-#             with col2:
-#                 st.subheader("Report Analysis") 
-#             # col1.image(input_file, use_container_width=True)
-#             # col2.image(input_file, use_container_width=True)
-#             col1.image(input_file, use_column_width=True)
-#             col2.image(super, use_column_width=True)
-            
-#             col3, col4 = st.columns([1, 1]) 
-#             with col3:
-#                 st.subheader("Grad-CAM Image")  # Change this title as needed
-#             with col4:
-#                 st.subheader("Heatmap")  # Change this title as needed
-
-#             col3.image(super, use_column_width=True)  # Replace with actual image variable
-#             col4.image(colormap, use_column_width=True)
-#         elif output_type == "Grad-CAM++":
-#             pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
-#             st.write(pred_val, pred_class, pred_val_prob)
-            
-#             if heatmap.max() > 1:  
-#                 heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
-
-#             # Apply a colormap (e.g., 'jet', 'viridis', 'plasma')
-#             colormap = plt.cm.plasma(heatmap)  # Convert grayscale to RGB colormap
-#             colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
-            
-#             col1, col2 = st.columns([1, 1]) 
-#             with col1:
-#                 st.subheader("Input Image")
-#             with col2:
-#                 st.subheader("Report Analysis") 
-#             # col1.image(input_file, use_container_width=True)
-#             # col2.image(input_file, use_container_width=True)
-#             col1.image(input_file, use_column_width=True)
-#             col2.image(super, use_column_width=True)
-            
-#             col3, col4 = st.columns([1, 1]) 
-#             with col3:
-#                 st.subheader("Grad-CAM++ Image")  # Change this title as needed
-#             with col4:
-#                 st.subheader("Heatmap")  # Change this title as needed
-
-#             col3.image(super, use_column_width=True)  # Replace with actual image variable
-#             col4.image(colormap, use_column_width=True)
-#         else:
-#             image_array, pred_class, pred_val, mask = lime_operations(image)
-#             st.write(pred_val, pred_class)
-#             # st.image(mark_boundaries(image_array / 255.0, mask))
-#             # st.image(input_file)
-#             col1, col2 = st.columns([1, 1]) 
-#             with col1:
-#                 st.subheader("Input Image")
-#             with col2:
-#                 st.subheader("Report Analysis") 
-#             # col1.image(input_file, use_container_width=True)
-#             # col2.image(input_file, use_container_width=True)
-#             col1.image(input_file, use_column_width=True)
-#             col2.image(mark_boundaries(image_array / 255.0, mask), use_column_width=True)
-
-#             col3, col4 = st.columns([1, 1]) 
-#             with col3:
-#                 st.subheader("Processed Image")
-#             with col4:
-#                 st.subheader("Mapped Image") 
-#             col3.image(input_file, use_column_width=True)
-#             col4.image(input_file, use_column_width=True)
-
-# --- End of Old Classify Button ---
-
 
 st.markdown("""
     <style>
