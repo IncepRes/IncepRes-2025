@@ -368,7 +368,7 @@ if input_file is not None:
     #     st.session_state['uploaded_file'] = file_name
     if file_type in ["image/png", "image/jpeg"]:
         image = Image.open(input_file).convert("RGB")
-        print(image)
+        # print(image)
         show_success_toast(f"Report uploaded successfully...")
     elif file_type == "application/pdf":
         pdf_document = fitz.open(stream=input_file.read(), filetype="pdf")
@@ -502,8 +502,8 @@ def grad_cam_plus(model, img,
                 conv_output, predictions = heatmap_model(img_tensor)
                 if category_id is None:
                     category_id = np.argmax(predictions[0])
-                if label_name is not None:
-                    print(label_name[category_id])
+                # if label_name is not None:
+                #     print(label_name[category_id])
                 output = predictions[:, category_id]
                 conv_first_grad = gtape3.gradient(output, conv_output)
             conv_second_grad = gtape2.gradient(conv_first_grad, conv_output)
@@ -534,7 +534,7 @@ def grad_cam_plus(model, img,
 
 def lime_explainer(image_array, model):
     explainer = LimeImageExplainer()
-    print("Image shape:", image_array[0].shape)
+    # print("Image shape:", image_array[0].shape)
     # Explain the instance with LIME
     explanation = explainer.explain_instance(image_array[0], model.predict, top_labels=5, hide_color=None, num_samples=100)
     # explanation = explainer.explain_instance(image_array[0], model.predict, top_labels=5, hide_color=0, num_samples=512)
@@ -551,12 +551,12 @@ def classify_operations(image, model):
     image_res = image.resize((72,72))
     # Convert to NumPy array
     image_array = np.array(image_res)
-    print(image_array.shape)
+    # print(image_array.shape)
     image_array = np.expand_dims(image_array, axis=0)
     
     grad_image_array = np.array(image)
     pred_val_prob = model.predict(image_array)
-    print(pred_val_prob)
+    # print(pred_val_prob)
     pred_val = np.argmax(pred_val_prob, axis=-1)[0]
     pred_class = class_names[pred_val]
     pred_val_prob = pred_val_prob[0, pred_val]
@@ -730,7 +730,8 @@ if classify_button:
                 with col2:
                     st.subheader("Report Analysis")
                 col1.image(input_file, use_column_width=True)
-                col2.image(super, use_column_width=True)
+                # col2.image(super, use_column_width=True)
+                col2.write(pred_class+" ("+ str(pred_val_prob) + ")")
 
                 col3, col4 = st.columns([1, 1])
                 with col3:
