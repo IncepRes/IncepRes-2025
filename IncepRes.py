@@ -380,6 +380,35 @@ if input_file is not None:
 
 class_names = ['all_benign', 'all_early', 'all_pre', 'all_pro', 'brain_glioma', 'brain_menin', 'brain_tumor', 'breast_benign', 'breast_malignant', 'cervix_dyk', 'cervix_koc', 'cervix_mep', 'cervix_pab', 'cervix_sfi', 'colon_aca', 'colon_bnt', 'kidney_normal', 'kidney_tumor', 'lung_aca', 'lung_bnt', 'lung_scc', 'lymph_cll', 'lymph_fl', 'lymph_mcl', 'oral_normal', 'oral_scc']
 
+class_names_df = {
+    0 : ['all_benign', 'Acute Lymphoblastic Leukemia - Benign', 'Non-cancerous, healthy cells', 'Healthy'],
+    1 : ['all_early', 'Acute Lymphoblastic Leukemia - Early', 'Early stages of leukemia', 'Cancerous'],
+    2 : ['all_pre', 'Acute Lymphoblastic Leukemia - Prestage', 'Pre-stage abnormal cells', 'Cancerous'],
+    3 : ['all_pro', 'Acute Lymphoblastic Leukemia - Advanced', 'Advanced leukemia cells', 'Cancerous'],
+    4 : ['brain_glioma', 'Glioma (Brain)', 'Most common brain tumor', 'Cancerous'],
+    5 : ['brain_menin', 'Meningioma (Brain)', 'Tumors affecting brain membranes', 'Cancerous'],
+    6 : ['brain_tumor', 'Pituitary Tumor (Brain)', 'Tumors affecting the pituitary gland', 'Cancerous'],
+    7 : ['breast_benign', 'Benign Breast Tissue', 'Non-cancerous breast tissues', 'Healthy'],
+    8 : ['breast_malignant', 'Malignant Breast Tissue', 'Cancerous breast tissues', 'Cancerous'],
+    9 : ['cervix_dyk', 'Cervical Cancer - Dyskeratotic', 'Abnormal cell growth', 'Cancerous'],
+    10: ['cervix_koc', 'Cervical Cancer - Koilocytotic', 'Cells showing changes from viral infections (e.g., HPV)', 'Cancerous'],
+    11: ['cervix_mep', 'Cervical Cancer - Metaplastic', 'Cells changed from one type to another (precancerous)', 'Cancerous'],
+    12: ['cervix_pab', 'Cervical Cancer - Parabasal', 'Immature squamous cells', 'Cancerous'],
+    13: ['cervix_sfi', 'Cervical Cancer - Superficial-Intermediate', 'More mature squamous cells', 'Cancerous'],
+    14: ['colon_aca', 'Colon Adenocarcinoma', 'Cancerous cells of the colon', 'Cancerous'],
+    15: ['colon_bnt', 'Colon Benign Tissue', 'Healthy colon tissues', 'Healthy'],
+    16: ['kidney_normal', 'Normal Kidney Tissue', 'Healthy kidney tissues', 'Healthy'],
+    17: ['kidney_tumor', 'Tumor-affected Kidney Tissue', 'Tumor-affected kidney tissues', 'Cancerous'],
+    18: ['lung_aca', 'Lung Adenocarcinoma', 'Cancerous cells of the lung', 'Cancerous'],
+    19: ['lung_bnt', 'Benign Lung Tissue', 'Healthy lung tissues', 'Healthy'],
+    20: ['lung_scc', 'Lung Squamous Cell Carcinoma', 'Aggressive lung cancer type', 'Cancerous'],
+    21: ['lymph_cll', 'Chronic Lymphocytic Leukemia', 'Slow-progressing blood cancer', 'Cancerous'],
+    22: ['lymph_fl', 'Follicular Lymphoma', 'Slow-growing non-Hodgkin lymphoma', 'Cancerous'],
+    23: ['lymph_mcl', 'Mantle Cell Lymphoma', 'Aggressive form of lymphoma', 'Cancerous'],
+    24: ['oral_normal', 'Normal Oral Cells', 'Healthy oral tissues', 'Healthy'],
+    25: ['oral_scc', 'Oral Squamous Cell Carcinoma', 'Cancerous oral cells', 'Cancerous']
+}
+
 def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
     # First, we create a model that maps the input image to the activations
     # of the last conv layer as well as the output predictions
@@ -557,28 +586,29 @@ def classify_operations(image, model):
     pred_val_prob = model.predict(image_array)
     # print(pred_val_prob)
     pred_val = np.argmax(pred_val_prob, axis=-1)[0]
-    pred_class = class_names[pred_val]
+    pred_class = class_names_df[pred_val][1]
+    state = class_names_df[pred_val][3]
     pred_val_prob = pred_val_prob[0, pred_val]
     
-    return pred_class, pred_val, image_array, grad_image_array, pred_val_prob
+    return pred_class, pred_val, image_array, grad_image_array, pred_val_prob, state
 
 def gradcam_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
-    pred_class, pred_val, image_array, grad_image_array, pred_val_prob = classify_operations(image, model)
+    pred_class, pred_val, image_array, grad_image_array, pred_val_prob, state = classify_operations(image, model)
     
     heatmap = make_gradcam_heatmap(image_array, model, 'add_8')        
     super = display_gradcam(grad_image_array, heatmap)
     
-    return pred_class, pred_val, super, pred_val_prob, heatmap
+    return pred_class, pred_val, super, pred_val_prob, heatmap, state
 
 def gradcampp_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
-    pred_class, pred_val, image_array, grad_image_array, pred_val_prob = classify_operations(image, model)
+    pred_class, pred_val, image_array, grad_image_array, pred_val_prob, state = classify_operations(image, model)
     
     heatmap_plus = grad_cam_plus(model, image_array, layer_name='add_8')       
     super = show_imgwithheat(grad_image_array, heatmap_plus, return_array=True)
     
-    return pred_class, pred_val, super, pred_val_prob, heatmap_plus
+    return pred_class, pred_val, super, pred_val_prob, heatmap_plus, state
     
 def lime_operations(image):
     model = keras.models.load_model('incep-res__26class_2dec2024.h5')
@@ -714,7 +744,7 @@ if classify_button:
             # ---------- Grad-Cam Analysis ----------
             if output_type == "Grad-CAM":
                 # Perform Grad-CAM analysis
-                pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
+                pred_class, pred_val, super, pred_val_prob, heatmap, state = gradcam_operations(image)
                 # Process the heatmap and apply colormap
                 if heatmap.max() > 1:
                     heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
@@ -724,12 +754,23 @@ if classify_button:
                 # Determine border color based on probability
                 probability = pred_val_prob * 100
 
-                if probability <= 50:
+                # # Swastik's color scheme
+                if state == 'Cancerous':
                     border_color = "#a4161a"  # Reddish
-                elif 51 <= probability <= 80:
-                    border_color = "#ffa200"  # Yellowish
+                # elif 51 <= probability <= 80:
+                #     border_color = "#ffa200"  # Yellowish
                 else:
                     border_color = "#09a129"  # Greenish
+                # # Swastik's color scheme
+                
+                # # Mainak's Initial color scheme
+                # if probability <= 50:
+                #     border_color = "#a4161a"  # Reddish
+                # elif 51 <= probability <= 80:
+                #     border_color = "#ffa200"  # Yellowish
+                # else:
+                #     border_color = "#09a129"  # Greenish
+                # # Mainak's Initial color scheme
 
                 # Custom CSS for styling the Report Analysis section with dynamic border
                 st.markdown(
@@ -819,7 +860,7 @@ if classify_button:
 
             # ---------- Grad-Cam++ Analysis ----------
             elif output_type == "Grad-CAM++":
-                pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
+                pred_class, pred_val, super, pred_val_prob, heatmap, state = gradcampp_operations(image)
                 
                 if heatmap.max() > 1:
                     heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
@@ -828,12 +869,23 @@ if classify_button:
 
                 probability = pred_val_prob * 100
 
-                if probability <= 50:
+                # # Swastik's color scheme
+                if state == 'Cancerous':
                     border_color = "#a4161a"  # Reddish
-                elif 51 <= probability <= 80:
-                    border_color = "#ffa200"  # Yellowish
+                # elif 51 <= probability <= 80:
+                #     border_color = "#ffa200"  # Yellowish
                 else:
                     border_color = "#09a129"  # Greenish
+                # # Swastik's color scheme
+                
+                # # Mainak's Initial color scheme
+                # if probability <= 50:
+                #     border_color = "#a4161a"  # Reddish
+                # elif 51 <= probability <= 80:
+                #     border_color = "#ffa200"  # Yellowish
+                # else:
+                #     border_color = "#09a129"  # Greenish
+                # # Mainak's Initial color scheme
 
                 # Custom CSS for styling the Report Analysis section with dynamic border
                 st.markdown(
