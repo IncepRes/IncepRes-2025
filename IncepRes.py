@@ -378,7 +378,6 @@ if input_file is not None:
 
 # ----------------------------- SELECT BOX & SUBMIT BUTTON -------------------------------- #
 
-# Swastik's Code
 class_names = ['all_benign', 'all_early', 'all_pre', 'all_pro', 'brain_glioma', 'brain_menin', 'brain_tumor', 'breast_benign', 'breast_malignant', 'cervix_dyk', 'cervix_koc', 'cervix_mep', 'cervix_pab', 'cervix_sfi', 'colon_aca', 'colon_bnt', 'kidney_normal', 'kidney_tumor', 'lung_aca', 'lung_bnt', 'lung_scc', 'lymph_cll', 'lymph_fl', 'lymph_mcl', 'oral_normal', 'oral_scc']
 
 def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
@@ -712,35 +711,115 @@ if classify_button:
         show_full_screen_spinner()
 
         with st.spinner():
-            # Perform Grad-CAM or Grad-CAM++ based on output_type
+            # Grad-Cam Analysis
             if output_type == "Grad-CAM":
                 # Perform Grad-CAM analysis
                 pred_class, pred_val, super, pred_val_prob, heatmap = gradcam_operations(image)
-                
                 # Process the heatmap and apply colormap
                 if heatmap.max() > 1:
                     heatmap = heatmap.astype(np.float32) / 255.0  # Normalize to [0,1]
                 colormap = plt.cm.plasma(heatmap)
                 colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
-                
-                # Display results
-                col1, col2 = st.columns([1, 1])
+
+                # Determine border color based on probability
+                probability = pred_val_prob * 100
+                if probability <= 50:
+                    border_color = "#FF4500"  # Reddish
+                elif 51 <= probability <= 80:
+                    border_color = "#FFD700"  # Yellowish
+                else:
+                    border_color = "#32CD32"  # Greenish
+
+                # Custom CSS for styling the Report Analysis section with dynamic border
+                st.markdown(
+                    f"""
+                    <style>
+                        @keyframes glowing-border {{
+                            0% {{ box-shadow: 0px 0px 5px {border_color}; }}
+                            50% {{ box-shadow: 0px 0px 12px {border_color}; }}
+                            100% {{ box-shadow: 0px 0px 5px {border_color}; }}
+                        }}
+                        .report-container {{
+                            border: 2px solid {border_color};
+                            border-radius: 15px;
+                            padding: 15px 30px;
+                            background-color: #121826;
+                            animation: glowing-border 1.5s infinite alternate;
+                            margin-bottom: 30px;
+                            font-family: 'Poppins', sans-serif;
+                            text-align: left;
+                            box-shadow: 0px 0px 10px rgba(32, 184, 205, 0.5);
+                        }}
+                        .report-title {{
+                            color: #20b8cd;
+                            font-size: 28px;
+                            font-weight: bold;
+                            text-align: center;
+                            padding-bottom: 15px;
+                        }}
+                        .report-text-container {{
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: left;
+                            gap: 10px;
+                            font-size: 22px;
+                            font-weight: 600;
+                            color: #20b8cd;
+                            padding-left: 15px;
+                        }}
+                        .report-text-container span.pred-value {{
+                            font-size: 22px;
+                            font-weight: 400;
+                            color: #ffffff;
+                            justify-content: left;
+                        }}
+                        .image-subheader {{
+                            text-align: center;
+                            font-size: 24px;
+                            font-weight: 600;
+                            color: #20b8cd;
+                            margin-top: -5px;
+                        }}
+                        .stImage {{
+                            margin-bottom: 5px;
+                        }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # First row: Report Analysis in a customized container
+                with st.container():
+                    st.markdown(
+                        f"""
+                        <div class="report-container">
+                            <div class="report-title">Report Analysis</div>
+                            <div class="report-text-container">
+                                <span>Cancer Type: <span class="pred-value">{pred_class}</span></span>
+                                <span>Prediction Strength: <span class="pred-value">{probability:.4f} %</span></span>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                # Second row: Input Image, Grad-CAM Image & Heatmap side-by-side
+                col1, col2, col3 = st.columns([1, 1, 1])
                 with col1:
-                    st.subheader("Input Image")
+                    st.image(input_file, use_column_width=True)
+                    st.markdown('<div class="image-subheader">Input Image</div>', unsafe_allow_html=True)
                 with col2:
-                    st.subheader("Report Analysis")
-                col1.image(input_file, use_column_width=True)
-                # col2.image(super, use_column_width=True)
-                col2.write(pred_class + " (" + "{:.4f}".format(pred_val_prob * 100) + " %)")
-
-                col3, col4 = st.columns([1, 1])
+                    st.image(super, use_column_width=True)
+                    st.markdown('<div class="image-subheader">Grad-CAM Image</div>', unsafe_allow_html=True)
                 with col3:
-                    st.subheader("Grad-CAM Image")
-                with col4:
-                    st.subheader("Heatmap")
-                col3.image(super, use_column_width=True)
-                col4.image(colormap, use_column_width=True)
+                    st.image(colormap, use_column_width=True)
+                    st.markdown('<div class="image-subheader">Heatmap</div>', unsafe_allow_html=True)
 
+
+
+
+
+            # Grad-Cam++ Analysis
             elif output_type == "Grad-CAM++":
                 # Perform Grad-CAM++ analysis
                 pred_class, pred_val, super, pred_val_prob, heatmap = gradcampp_operations(image)
@@ -751,23 +830,55 @@ if classify_button:
                 colormap = plt.cm.plasma(heatmap)
                 colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
 
-                # Display results
-                col1, col2 = st.columns([1, 1])
+                #Custom CSS for styling the Report Analysis section
+                st.markdown(
+                    """
+                    <style>
+                        .report-container {
+                            border: 2px solid #20b8cd;
+                            border-radius: 10px;
+                            padding: 15px;
+                            background-color: #121826;
+                            box-shadow: 0px 0px 5px #20b8cd;
+                            margin-bottom: 10px;
+                        }
+                        .report-title {
+                            color: #20b8cd;
+                            font-size: 24px;
+                            font-weight: bold;
+                            text-align: center;
+                        }
+                        .report-text {
+                            font-size: 16px;
+                            color: #ffffff;
+                        }
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+                # First row
+                with st.container():
+                    st.markdown(
+                        f"""
+                        <div class="report-container">
+                            <div class="report-title">Report Analysis</div>
+                            <p class="report-text">{pred_class} ({pred_val_prob * 100:.4f} %)</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                # Second row
+                col1, col2, col3 = st.columns([1, 1, 1])
                 with col1:
                     st.subheader("Input Image")
+                    st.image(input_file, use_column_width=True)
                 with col2:
-                    st.subheader("Report Analysis")
-                col1.image(input_file, use_column_width=True)
-                # col2.image(super, use_column_width=True)
-                col2.write(pred_class + " (" + "{:.4f}".format(pred_val_prob * 100) + " %)")
-
-                col3, col4 = st.columns([1, 1])
-                with col3:
                     st.subheader("Grad-CAM++ Image")
-                with col4:
+                    st.image(super, use_column_width=True)
+                with col3:
                     st.subheader("Heatmap")
-                col3.image(super, use_column_width=True)
-                col4.image(colormap, use_column_width=True)
+                    st.image(colormap, use_column_width=True)
             
             # Simulate processing time for demonstration
             time.sleep(3)
