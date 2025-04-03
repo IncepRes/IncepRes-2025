@@ -30,6 +30,16 @@ st.set_page_config(
     }
 )
 
+# Code to hide the right side hamburger menu and Made with Stremlit text
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # CDN's for Icons
 people_icon_url = "https://cdn-icons-png.flaticon.com/512/456/456212.png"
 linkedin_icon_url = "https://cdn-icons-png.flaticon.com/512/174/174857.png"
