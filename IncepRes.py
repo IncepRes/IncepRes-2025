@@ -36,6 +36,10 @@ hide_st_style = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
+
+            # Code to Hide "Hosted with Streamlit Badge" on the bottom right
+            a._container_gzau3_1._viewerBadge_nim44_23 ._link_gzau3_10 {visibility: hidden;}
+            a._container_gzau3_1._viewerBadge_nim44_23 ._link_gzau3_10:after {visibility: hidden;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -629,7 +633,7 @@ def lime_operations(image):
     
     return grad_image_array, pred_class, pred_val, mask, pred_val_prob
 
-# Functions for Full Screen Spinner
+# Functions for Full Screen Loader
 def show_full_screen_spinner():
     st.markdown(
         """
@@ -710,7 +714,7 @@ def show_full_screen_spinner():
         """, unsafe_allow_html=True
     )
 
-# Function to hide the full-screen spinner (overlay)
+# Function to hide the full-screen Loader (overlay)
 def hide_full_screen_spinner():
     st.markdown(
         """
