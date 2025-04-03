@@ -36,10 +36,7 @@ hide_st_style = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
-
-            # Code to Hide "Hosted with Streamlit Badge" on the bottom right
-            a._container_gzau3_1._viewerBadge_nim44_23 ._link_gzau3_10 {visibility: hidden;}
-            a._container_gzau3_1._viewerBadge_nim44_23 ._link_gzau3_10:after {visibility: hidden;}
+            .stDeployButton {visibility: hidden;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
