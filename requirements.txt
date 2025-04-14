@@ -1,7 +1,8 @@
 streamlit==1.22.0
 Pillow==10.3.0
 PyMuPDF==1.25.4
-tensorflow==2.10.1
+fpdf==1.7.2
+tensorflow==10.1
 tensorflow-cpu
 tensorflow-addons==0.22.0
 matplotlib==3.9.0

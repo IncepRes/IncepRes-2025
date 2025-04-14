@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image, ImageEnhance
 import fitz
 import io
+import os
 import time
 import json
 import base64
@@ -15,6 +16,10 @@ import cv2
 from IPython.display import Image as im, display
 from lime.lime_image import LimeImageExplainer
 from skimage.segmentation import mark_boundaries
+from fpdf import FPDF
+from io import BytesIO
+import tempfile
+from datetime import datetime
 
 st.set_page_config(
     page_title="IncepRes",
@@ -722,7 +727,123 @@ def hide_full_screen_spinner():
         """, unsafe_allow_html=True
     )
 
-# ----------------------------------- New Classify Button with a Spinner Added on 02/04/2025 -----------------------------------
+# Function to generate a PDF of the predicted results
+def generate_pdf(pred_class, probability, input_img, super_img, colormap, logo_path="imgs/sidebar_incepres_logo.png"):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    # Register Montserrat font if available
+    try:
+        pdf.add_font('Montserrat-Regular', '', 'imgs/fonts/Montserrat-Regular.ttf', uni=True)
+        pdf.add_font('Montserrat-SemiBold', '', 'imgs/fonts/Montserrat-SemiBold.ttf', uni=True)
+        pdf.add_font('Montserrat-Bold', '', 'imgs/fonts/Montserrat-Bold.ttf', uni=True)
+        font_regular = 'Montserrat-Regular'
+        font_semi_bold = 'Montserrat-SemiBold'
+        font_bold = 'Montserrat-Bold'
+    except:
+        font_regular = 'Arial'
+        font_semi_bold = 'Arial'
+        font_bold = 'Arial'
+
+    # ---- Create faded, rotated watermark ----
+    faded_watermark_path = "imgs/watermark_diagonal_faded.png"
+    if not os.path.exists(faded_watermark_path):
+        original = Image.open(logo_path).convert("RGBA")
+        alpha = original.split()[3]
+        alpha = alpha.point(lambda p: int(p * 0.08))  # very light
+        original.putalpha(alpha)
+        rotated = original.rotate(45, expand=True)
+        rotated.save(faded_watermark_path)
+
+    # Add watermark to center
+    watermark_width = 160
+    watermark_x = (210 - watermark_width) / 2
+    watermark_y = (297 - watermark_width) / 2
+    pdf.image(faded_watermark_path, x=watermark_x, y=watermark_y, w=watermark_width)
+
+    # Add logo to top
+    pdf.image(logo_path, x=75, y=12, w=60)
+
+    # Top horizontal line just below logo
+    pdf.set_line_width(0.15)
+    pdf.line(10, 38, 200, 38)
+    pdf.ln(35)
+
+    # Bold prediction result
+    pdf.set_font(font_semi_bold, 'B', 14)
+    pdf.cell(0, 10, f"Predicted Class: {pred_class}", ln=True)
+    pdf.cell(0, 10, f"Prediction Probability: {probability:.2f} %", ln=True)
+    pdf.ln(10)
+
+    pdf.set_font(font_bold, 'B', 13)
+    pdf.cell(0, 12, "Output Visuals:", ln=True, align='L')
+
+    image_titles = ["Input Image", "Superimposed Image", "Heatmap"]
+    image_list = [input_img, super_img, colormap]
+    temp_paths = []
+
+    for img in image_list:
+        if isinstance(img, np.ndarray):
+            img = Image.fromarray(img)
+        img_bytes = BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_img:
+            temp_img.write(img_bytes.read())
+            temp_paths.append(temp_img.name)
+
+    total_width = 200
+    img_width = 50
+    spacing = 12
+    x_positions = [(total_width - (3 * img_width + 2 * spacing)) / 2 + i * (img_width + spacing) for i in range(3)]
+    y_position = pdf.get_y() + 10
+    img_height = 50
+
+    for i, img_path in enumerate(temp_paths):
+        pdf.image(img_path, x=x_positions[i], y=y_position, w=img_width, h=img_height)
+        pdf.set_xy(x_positions[i], y_position + img_height + 2)
+        pdf.set_font(font_semi_bold, 'B', 10)
+        pdf.cell(img_width, 10, image_titles[i], align='C')
+
+    y_bottom = pdf.get_y() + 120
+    if y_bottom > 295:
+        pdf.add_page()
+
+    pdf.set_y(y_bottom)
+    pdf.set_line_width(0.2)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+
+    pdf.set_y(pdf.get_y() - 10)
+    pdf.set_font(font_bold, '', 15)
+    pdf.cell(0, 10, "Thank You", ln=True, align="C")
+
+    pdf.set_y(pdf.get_y() + 2)
+    pdf.set_font(font_semi_bold, '', 10)
+    pdf.cell(0, 10, f"© IncepRes - {datetime.now().year}", align="L")
+
+    now_str = datetime.now().strftime("%d-%b-%Y | %I:%M %p")
+    pdf.set_y(pdf.get_y())
+    pdf.set_font(font_regular, '', 10)
+    pdf.cell(0, 10, now_str, align="R")
+
+    # Return PDF bytes
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+        pdf.output(temp_pdf.name)
+        temp_pdf.seek(0)
+        pdf_bytes = BytesIO(temp_pdf.read())
+
+    # Clean up temporary image files
+    for temp_img in temp_paths:
+        try:
+            os.remove(temp_img)
+        except:
+            pass
+
+    return pdf_bytes
+
+
+# ----------------------------------- Classify Button with a Spinner -----------------------------------
 col1, col2 = st.columns([5, 1])
 with col1:
     options = ["Select Output Type..."] + ["Grad-CAM", "Grad-CAM++"]
@@ -745,8 +866,7 @@ if classify_button:
     elif 'input_file' not in locals() or input_file is None:
         show_warning_toast(f"Please upload a report!")
     else:
-        # This block runs when the input and output are valid
-        
+        # This block runs when the input and output are valid   
         # Show the full-screen spinner while performing the analysis operations
         show_full_screen_spinner()
 
@@ -763,24 +883,10 @@ if classify_button:
 
                 # Determine border color based on probability
                 probability = pred_val_prob * 100
-
-                # # Swastik's color scheme
                 if state == 'Cancerous':
                     border_color = "#a4161a"  # Reddish
-                # elif 51 <= probability <= 80:
-                #     border_color = "#ffa200"  # Yellowish
                 else:
                     border_color = "#09a129"  # Greenish
-                # # Swastik's color scheme
-                
-                # # Mainak's Initial color scheme
-                # if probability <= 50:
-                #     border_color = "#a4161a"  # Reddish
-                # elif 51 <= probability <= 80:
-                #     border_color = "#ffa200"  # Yellowish
-                # else:
-                #     border_color = "#09a129"  # Greenish
-                # # Mainak's Initial color scheme
 
                 # Custom CSS for styling the Report Analysis section with dynamic border
                 st.markdown(
@@ -878,25 +984,11 @@ if classify_button:
                 colormap = (colormap[:, :, :3] * 255).astype(np.uint8)
 
                 probability = pred_val_prob * 100
-
-                # # Swastik's color scheme
                 if state == 'Cancerous':
-                    border_color = "#a4161a"  # Reddish
-                # elif 51 <= probability <= 80:
-                #     border_color = "#ffa200"  # Yellowish
+                    border_color = "#a4161a"  
                 else:
                     border_color = "#09a129"  # Greenish
-                # # Swastik's color scheme
                 
-                # # Mainak's Initial color scheme
-                # if probability <= 50:
-                #     border_color = "#a4161a"  # Reddish
-                # elif 51 <= probability <= 80:
-                #     border_color = "#ffa200"  # Yellowish
-                # else:
-                #     border_color = "#09a129"  # Greenish
-                # # Mainak's Initial color scheme
-
                 # Custom CSS for styling the Report Analysis section with dynamic border
                 st.markdown(
                     f"""
@@ -983,9 +1075,21 @@ if classify_button:
                     st.markdown('<div class="image-subheader">Heatmap</div>', unsafe_allow_html=True)
             # ---------- End of Grad-Cam++ Analysis ----------
             
-            time.sleep(3)
+            time.sleep(4)
         hide_full_screen_spinner()
-# ----------------------------------- End of Classify Button with a Spinner Added on 02/04/2025 -----------------------------------
+        
+        # Download PDF button
+        if pred_class:
+            logo_path = "imgs\sidebar_incepres_logo.png"
+            pdf_bytes = generate_pdf(pred_class, probability, Image.open(input_file), Image.fromarray(super), colormap, logo_path)
+            st.download_button(
+                label= "Download Report",
+                data=pdf_bytes,
+                file_name="IncepRes_Cancer_Report.pdf",
+                mime="application/pdf"
+            )
+
+# ----------------------------------- End of Classify Button with a Spinner -----------------------------------
 
 st.markdown("""
     <style>
