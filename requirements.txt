@@ -1,9 +1,8 @@
 streamlit==1.22.0
 Pillow==10.3.0
 PyMuPDF==1.25.4
-fpdf==1.7.2
+fpdf2==2.8.2
 tensorflow==10.1
-tensorflow-cpu
 tensorflow-addons==0.22.0
 matplotlib==3.9.0
 opencv-python-headless==4.10.0.84
