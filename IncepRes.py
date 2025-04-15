@@ -743,8 +743,8 @@ def generate_pdf(pred_class, probability, input_img, super_img, colormap, logo_p
     pdf.ln(35)
 
     pdf.set_font(font_semi_bold, '', 14)
-    pdf.cell(0, 10, f"Predicted Class: {pred_class}", ln=True)
-    pdf.cell(0, 10, f"Prediction Probability: {probability:.2f} %", ln=True)
+    pdf.cell(0, 10, f"Cancer Type: {pred_class}", ln=True)
+    pdf.cell(0, 10, f"Prediction Strength: {probability:.2f} %", ln=True)
     pdf.ln(10)
 
     pdf.set_font(font_bold, '', 13)
