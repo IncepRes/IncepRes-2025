@@ -219,19 +219,6 @@ st.markdown(
         position: relative;
     }
 
-    # span.st-emotion-cache-9ycgxx.e1blfcsg3::after {
-    #     width: 1000px;
-    #     content: "Drag & Drop Cancer Report Here";
-    #     visibility: visible;
-    #     position: absolute;
-    #     left: 0;
-    #     top: 0;
-    #     color: #20b8cd;
-    #     font-size: 23px;
-    #     font-weight: 360;
-    #     font-family: "Poppins", sans-serif;
-    # }
-
     div.css-8u98yl.exg6vvm0 > section.css-1iwfxcu.exg6vvm15 {
         border: 4px dashed #20b8cd;
         border-radius: 20px;
@@ -372,22 +359,18 @@ def show_warning_toast(message):
     st.markdown(f'<div class="warning_toast">{message}</div>', unsafe_allow_html=True)
 
 # File uploader widget
-input_file = st.file_uploader("", type=["png", "jpg", "jpeg", "pdf"])
+input_file = st.file_uploader("", type=["png", "jpg", "jpeg",])
 
 # Check if a file is already uploaded
 if input_file is not None:
     file_type = input_file.type
     file_name = input_file.name
 
-    # if st.session_state['uploaded_file'] is None:
-    #     st.session_state['uploaded_file'] = file_name
     if file_type in ["image/png", "image/jpeg"]:
         image = Image.open(input_file).convert("RGB")
-        # print(image)
         show_success_toast(f"Report uploaded successfully...")
     elif file_type == "application/pdf":
-        pdf_document = fitz.open(stream=input_file.read(), filetype="pdf")
-        show_success_toast(f"PDF uploaded successfully...")
+        show_warning_toast(f"PDF files are not supported!")
     else:
         st.error("Unsupported file format!")
 
@@ -480,12 +463,6 @@ def display_gradcam(image_array, heatmap, alpha=0.4):
     # Superimpose heatmap on original image
     superimposed_img = jet_heatmap * alpha + img
     superimposed_img = np.clip(superimposed_img, 0, 255).astype(np.uint8)  # Ensure valid pixel values
-
-    # # Display Grad-CAM
-    # plt.figure(figsize=(6, 6))
-    # plt.imshow(superimposed_img)
-    # plt.axis("off")  # Hide axes
-    # plt.show()
     
     return superimposed_img
 
@@ -727,122 +704,6 @@ def hide_full_screen_spinner():
         """, unsafe_allow_html=True
     )
 
-# Function to generate a PDF of the predicted results
-# def generate_pdf(pred_class, probability, input_img, super_img, colormap, logo_path="imgs/sidebar_incepres_logo.png"):
-#     pdf = FPDF()
-#     pdf.set_auto_page_break(auto=True, margin=15)
-#     pdf.add_page()
-
-#     # Register Montserrat font if available
-#     try:
-#         pdf.add_font('Montserrat-Regular', '', 'imgs/fonts/Montserrat-Regular.ttf', uni=True)
-#         pdf.add_font('Montserrat-SemiBold', '', 'imgs/fonts/Montserrat-SemiBold.ttf', uni=True)
-#         pdf.add_font('Montserrat-Bold', '', 'imgs/fonts/Montserrat-Bold.ttf', uni=True)
-#         font_regular = 'Montserrat-Regular'
-#         font_semi_bold = 'Montserrat-SemiBold'
-#         font_bold = 'Montserrat-Bold'
-#     except:
-#         font_regular = 'Arial'
-#         font_semi_bold = 'Arial'
-#         font_bold = 'Arial'
-
-#     # ---- Create faded, rotated watermark ----
-#     faded_watermark_path = "imgs/watermark_diagonal_faded.png"
-#     if not os.path.exists(faded_watermark_path):
-#         original = Image.open(logo_path).convert("RGBA")
-#         alpha = original.split()[3]
-#         alpha = alpha.point(lambda p: int(p * 0.08))  # very light
-#         original.putalpha(alpha)
-#         rotated = original.rotate(45, expand=True)
-#         rotated.save(faded_watermark_path)
-
-#     # Add watermark to center
-#     watermark_width = 160
-#     watermark_x = (210 - watermark_width) / 2
-#     watermark_y = (297 - watermark_width) / 2
-#     pdf.image(faded_watermark_path, x=watermark_x, y=watermark_y, w=watermark_width)
-
-#     # Add logo to top
-#     pdf.image(logo_path, x=75, y=12, w=60)
-
-#     # Top horizontal line just below logo
-#     pdf.set_line_width(0.15)
-#     pdf.line(10, 38, 200, 38)
-#     pdf.ln(35)
-
-#     # Bold prediction result
-#     pdf.set_font(font_semi_bold, '', 14)
-#     pdf.cell(0, 10, f"Predicted Class: {pred_class}", ln=True)
-#     pdf.cell(0, 10, f"Prediction Probability: {probability:.2f} %", ln=True)
-#     pdf.ln(10)
-
-#     pdf.set_font(font_bold, '', 13)
-#     pdf.cell(0, 12, "Output Visuals:", ln=True, align='L')
-
-#     image_titles = ["Input Image", "Superimposed Image", "Heatmap"]
-#     image_list = [input_img, super_img, colormap]
-#     temp_paths = []
-
-#     for img in image_list:
-#         if isinstance(img, np.ndarray):
-#             img = Image.fromarray(img)
-#         img_bytes = BytesIO()
-#         img.save(img_bytes, format='PNG')
-#         img_bytes.seek(0)
-#         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_img:
-#             temp_img.write(img_bytes.read())
-#             temp_paths.append(temp_img.name)
-
-#     total_width = 200
-#     img_width = 50
-#     spacing = 12
-#     x_positions = [(total_width - (3 * img_width + 2 * spacing)) / 2 + i * (img_width + spacing) for i in range(3)]
-#     y_position = pdf.get_y() + 10
-#     img_height = 50
-
-#     for i, img_path in enumerate(temp_paths):
-#         pdf.image(img_path, x=x_positions[i], y=y_position, w=img_width, h=img_height)
-#         pdf.set_xy(x_positions[i], y_position + img_height + 2)
-#         pdf.set_font(font_semi_bold, '', 10)
-#         pdf.cell(img_width, 10, image_titles[i], align='C')
-
-#     y_bottom = pdf.get_y() + 120
-#     if y_bottom > 295:
-#         pdf.add_page()
-
-#     pdf.set_y(y_bottom)
-#     pdf.set_line_width(0.2)
-#     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-
-#     pdf.set_y(pdf.get_y() - 10)
-#     pdf.set_font(font_bold, '', 15)
-#     pdf.cell(0, 10, "Thank You", ln=True, align="C")
-
-#     pdf.set_y(pdf.get_y() + 2)
-#     pdf.set_font(font_semi_bold, '', 10)
-#     pdf.cell(0, 10, f"© IncepRes - {datetime.now().year}", align="L")
-
-#     now_str = datetime.now().strftime("%d-%b-%Y | %I:%M %p")
-#     pdf.set_y(pdf.get_y())
-#     pdf.set_font(font_regular, '', 10)
-#     pdf.cell(0, 10, now_str, align="R")
-
-#     # Return PDF bytes
-#     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
-#         pdf.output(temp_pdf.name)
-#         temp_pdf.seek(0)
-#         pdf_bytes = BytesIO(temp_pdf.read())
-
-#     # Clean up temporary image files
-#     for temp_img in temp_paths:
-#         try:
-#             os.remove(temp_img)
-#         except:
-#             pass
-
-#     return pdf_bytes
-
-
 # Function to generate PDF
 def generate_pdf(pred_class, probability, input_img, super_img, colormap, logo_path="imgs/sidebar_incepres_logo.png"):
     pdf = FPDF()
@@ -932,9 +793,9 @@ def generate_pdf(pred_class, probability, input_img, super_img, colormap, logo_p
     pdf.set_font(font_semi_bold, '', 10)
     pdf.cell(0, 10, f"© IncepRes - {datetime.now().year}", align="L")
 
-    now_str = datetime.now().strftime("%d-%b-%Y | %I:%M %p")
+    now_str = datetime.now().strftime("%d-%b-%Y")
     pdf.set_y(pdf.get_y())
-    pdf.set_font(font_regular, '', 10)
+    pdf.set_font(font_semi_bold, '', 10)
     pdf.cell(0, 10, now_str, align="R")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
@@ -947,20 +808,30 @@ def generate_pdf(pred_class, probability, input_img, super_img, colormap, logo_p
             os.remove(temp_img)
         except:
             pass
-
     return pdf_bytes
-
 
 # ----------------------------------- Classify Button with a Spinner -----------------------------------
 col1, col2 = st.columns([5, 1])
+
 with col1:
     options = ["Select Output Type..."] + ["Grad-CAM", "Grad-CAM++"]
+
+    st.markdown(
+        """
+        <div style='margin-top: 0px;'>
+        """,
+        unsafe_allow_html=True
+    )
+
     output_type = st.selectbox(
-        label="",
+        label="Output Type",
         options=options,
         index=0,
-        key="output_type"
+        key="output_type",
+        label_visibility="collapsed"
     )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     classify_button = st.button("Classify ➤", key="submit_btn")
@@ -1186,29 +1057,20 @@ if classify_button:
             time.sleep(4)
         hide_full_screen_spinner()
         
-        # Download PDF button
-        # if pred_class:
-        #     logo_path = "imgs\sidebar_incepres_logo.png"
-        #     pdf_bytes = generate_pdf(pred_class, probability, Image.open(input_file), Image.fromarray(super), colormap, logo_path)
-        #     st.download_button(
-        #         label= "Download Report",
-        #         data=pdf_bytes,
-        #         file_name="IncepRes_Cancer_Report.pdf",
-        #         mime="application/pdf"
-        #     )
-
-
+        # Download PDF Button 
         if pred_class:
             logo_path = "imgs/sidebar_incepres_logo.png"
             if os.path.exists(logo_path):
                 pdf_bytes = generate_pdf(pred_class, probability, Image.open(input_file), Image.fromarray(super), colormap, logo_path)
                 
-                st.download_button(
-                    label="Download Report",
-                    data=pdf_bytes,
-                    file_name="IncepRes_Cancer_Report.pdf",
-                    mime="application/pdf"
-                )
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.download_button(
+                        label="Download Prediction Report",
+                        data=pdf_bytes,
+                        file_name="IncepRes_Cancer_Report.pdf",
+                        mime="application/pdf"
+                    )
             else:
                 st.error("Logo file not found at path: imgs/sidebar_incepres_logo.png")
 # ----------------------------------- End of Classify Button with a Spinner -----------------------------------
@@ -1232,7 +1094,7 @@ st.markdown("""
         }
 
         .stButton {
-            margin-top: 28px;
+            margin-top: 12px;
             margin-bottom: 20px;
             display: flex;
             justify-content: center;
@@ -1275,7 +1137,52 @@ st.markdown("""
             font-weight: 700;
             color: #0e1117 !important;
         }
+        
 
+        .stDownloadButton {
+            margin-top: 50px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .stDownloadButton > button {
+            width: 280px;
+            height: 45px;
+            background: linear-gradient(142deg,#20b8cd,#5acdd6,#7fdde3,#1a9eb5,#157f99);
+            background-size: 300% 300%;
+            animation: gradient-animation 5s ease infinite;
+            border: none;
+            border-radius: 10px;
+            padding: 0.5rem 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+            text-decoration: none; 
+            display: inline-block;
+            font-family: "Poppins", sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+        }
+
+        .stDownloadButton > button:hover {
+            transform: scale(1.01);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .stDownloadButton > button p {
+            font-family: "Poppins", sans-serif !important;
+            font-size: 18px !important;
+            font-weight: 600;
+            color: #0e1117 !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 # ------------------- End of Selector & Button ------------------- #
