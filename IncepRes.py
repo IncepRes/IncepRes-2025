@@ -585,7 +585,7 @@ def classify_operations(image, model):
     return pred_class, pred_val, image_array, grad_image_array, pred_val_prob, state
 
 def gradcam_operations(image):
-    model = keras.models.load_model('incep-res__26class_2dec2024.h5')
+    model = keras.models.load_model('incep-res__25epochs__21apr2025.h5')
     pred_class, pred_val, image_array, grad_image_array, pred_val_prob, state = classify_operations(image, model)
     
     heatmap = make_gradcam_heatmap(image_array, model, 'add_8')        
@@ -594,7 +594,7 @@ def gradcam_operations(image):
     return pred_class, pred_val, super, pred_val_prob, heatmap, state
 
 def gradcampp_operations(image):
-    model = keras.models.load_model('incep-res__26class_2dec2024.h5')
+    model = keras.models.load_model('incep-res__25epochs__21apr2025.h5')
     pred_class, pred_val, image_array, grad_image_array, pred_val_prob, state = classify_operations(image, model)
     
     heatmap_plus = grad_cam_plus(model, image_array, layer_name='add_8')       
@@ -603,7 +603,7 @@ def gradcampp_operations(image):
     return pred_class, pred_val, super, pred_val_prob, heatmap_plus, state
     
 def lime_operations(image):
-    model = keras.models.load_model('incep-res__26class_2dec2024.h5')
+    model = keras.models.load_model('incep-res__25epochs__21apr2025.h5')
     pred_class, pred_val, image_array, grad_image_array, pred_val_prob = classify_operations(image, model)
     
     temp, mask = lime_explainer(image_array, model)       
